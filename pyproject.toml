@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "infectio-mesa"
+version = "0.1.0"
+description = ""
+authors = ["ashkan <ashkan.mokarian@gmail.com>"]
+readme = "README.md"
+packages = [{include = "infectio_mesa"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+matplotlib = "^3.7.2"
+mesa = "^1.2.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
