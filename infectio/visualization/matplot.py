@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 
 class Matplot:
@@ -6,7 +7,7 @@ class Matplot:
 
     def __init__(self, model, State, state_style_dict, figsize=(14, 8)):
         self.fig = plt.figure(figsize=figsize)
-        grid = plt.GridSpec(4, 7, wspace=0.01, hspace=0.01)
+        grid = plt.GridSpec(4, 7, wspace=0.1, hspace=0.5)
         self.ax_pos = self.fig.add_subplot(grid[:-1, :3])
         self.ax_dif = self.fig.add_subplot(grid[:-1, 3:])
         self.ax_colorbar = self.fig.add_subplot(grid[:-1, -1], frameon=False)
@@ -14,7 +15,15 @@ class Matplot:
 
         self.ax_pos.set_aspect("auto")
         self.ax_dif.set_aspect("auto")
+        self.ax_dif.tick_params(
+            axis="y", which="both", left=False, right=False, labelleft=False
+        )  # Hide y-ticks for ax_dif
+        self.ax_colorbar.tick_params(bottom=False, top=False, left=False, right=False)
+        self.ax_colorbar.set_yticklabels([])
+        self.ax_colorbar.set_xticklabels([])
         self.colorbar = None
+        # ax_dif colorbar normalizer
+        self.two_slope_norm = mcolors.TwoSlopeNorm(vmin=0, vcenter=0.1, vmax=10)
 
         self.model = model
         self.State = State
@@ -26,15 +35,11 @@ class Matplot:
         # Initialize three lists for each cell state
         state_lists = {k: [] for k in self.State}
         _ = [state_lists[a.state].append(a) for a in self.model.schedule.agents]
-
-        # Pos plot
         self.plot_pos(state_lists)
-        # Line plot
         if step is None:
             step = self.steps[-1] if self.steps else 0
         self.steps.append(step)
         self.plot_lines(state_lists)
-        # Particle plot
         self.plot_particle()
 
         plt.draw()
@@ -64,8 +69,9 @@ class Matplot:
 
     def plot_particle(self):
         self.ax_dif.cla()  # This makes the program run much faster
+        self.two_slope_norm.autoscale(self.model.particle.u)
         diff_plot = self.ax_dif.imshow(
-            self.model.particle.u.T, vmin=0, vmax=1, origin="lower"
+            self.model.particle.u.T, norm=self.two_slope_norm, origin="lower"
         )
         if not self.colorbar:
             self.colorbar = self.fig.colorbar(diff_plot, ax=self.ax_colorbar)
