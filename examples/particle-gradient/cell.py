@@ -3,7 +3,7 @@ from enum import Enum
 
 import mesa
 
-from infectio.utils import direction_noise
+from infectio.utils import direction_noise, two_slope_production
 import options as opt
 
 
@@ -96,7 +96,13 @@ class Cell(mesa.Agent):
 
     def add_para_molecule_during_infection(self):
         x, y = self.pos
-        self.model.particle.u[int(x), int(y)] += opt.PARA_PRODUCE_RATE
+        # Two-slope production for infected cells
+        self.model.particle.u[int(x), int(y)] += two_slope_production(
+            self.time_infected,
+            opt.PARA_PRODUCE_MAX,
+            opt.PARA_PRODUCE_T1,
+            opt.PARA_PRODUCE_T2,
+        )
 
     def step(self):
         """
