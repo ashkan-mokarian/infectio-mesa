@@ -2,6 +2,18 @@
 
 Agent-based modeling for Virological Plaque using Mesa library.
 
+# How to use
+
+## Install dependecies
+[Poetry](https://python-poetry.org/) is needed. Run `poetry install` to create python virtual environment. To activate
+the environment either use `poetry run python <.py file>` or activate a shell environment using `poetry shell`.
+
+## Running examples
+Go into one of the example models in *examples* folder and run the corresponding `run.py` file.
+
+## Create a new model
+TBD
+
 # Personal notes
 
 * Can we avoid discretization of particle scalar fields and work completely with
