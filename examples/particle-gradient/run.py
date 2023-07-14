@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # file_name = "output/plots/plot_{}.png"
     # os.makedirs(file_name.format(0), exist_ok=True)
     start_time = time.perf_counter()
-    model = Model(2000, 500, 500)
+    model = Model(2500, 600, 600)
     state_style_dict = {
         State.S: {"color": "b", "marker": "o", "markersize": 4},
         State.I: {"color": "g", "marker": "o", "markersize": 4},
@@ -32,4 +32,9 @@ if __name__ == "__main__":
         model.step()
         plt.pause(0.000001)
     print(f"Elapsed time: {time.perf_counter() - start_time:.3f}")
+    # Debugging gradient directions
+    # fig, ax = plt.subplots()
+    # ax.hist(model.particle.grad_degrees, bins=360)
+    # ax.set_title("move direction histogram")
+
     plt.waitforbuttonpress()

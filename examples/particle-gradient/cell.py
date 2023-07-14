@@ -3,6 +3,7 @@ from enum import Enum
 
 import mesa
 
+from infectio.utils import direction_noise
 import options as opt
 
 
@@ -47,8 +48,7 @@ class Cell(mesa.Agent):
 
     def particle_gradient_direction(self):
         """Returns gradient direction of particle"""
-        x, y = self.pos
-        grad = self.model.particle.grad((int(x), int(y)))
+        grad = self.model.particle.grad(self.pos)
         return grad
 
     def move(self):
@@ -63,8 +63,10 @@ class Cell(mesa.Agent):
             norm = np.linalg.norm(grad_dir)
             if norm:
                 grad_dir /= norm
-            # grad_dir /= np.linalg.norm(grad_dir)
-            new_pos -= grad_dir * opt.SPEED
+                grad_dir = direction_noise(
+                    grad_dir, opt.GRADIENT_DIRECTION_NOISE_MAX_RADIAN
+                )
+                new_pos -= grad_dir * opt.GRADIENT_SPEED
         self.model.space.move_agent(self, new_pos)
 
     def infect_cell(self):

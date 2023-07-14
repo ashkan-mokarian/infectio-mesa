@@ -1,14 +1,9 @@
 import mesa
 import numpy as np
 
-from cell import Cell, State
+from cell import Cell
 from infectio.particle import Homogenous2dDiffusion
-
-# Heat Diffusion Constants
-# all the coefficient used for homogenous diffusion in one.
-# \gamma = alpha * delta_t / delta_x ** 2 where alpha is the diffusion constant
-GAMMA = 0.2
-particle_diffusion_time_steps_per_each_model_step = 30
+import options as opt
 
 
 class Model(mesa.Model):
@@ -34,7 +29,10 @@ class Model(mesa.Model):
 
         # Virions in space, used for molecular diffusion
         self.particle = Homogenous2dDiffusion(
-            GAMMA, width, height, particle_diffusion_time_steps_per_each_model_step
+            opt.GAMMA,
+            width,
+            height,
+            opt.particle_diffusion_time_steps_per_each_model_step,
         )
 
         for i in range(self.num_agents - 1):
