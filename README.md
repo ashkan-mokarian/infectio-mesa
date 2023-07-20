@@ -25,3 +25,5 @@ columns with y, first row is x=0 and first column is y=0. Therefore for ploting 
 plt.imshow(u.T, origin='lower')
 
 * Now, molecule released at int(x, y). Could also release with sub-pixel precision but not implemented.
+
+* More accurate gradients? Look here [Structure tensor and diagonal gradients](https://bartwronski.com/2021/02/28/computing-gradients-on-grids-forward-central-and-diagonal-differences/)
