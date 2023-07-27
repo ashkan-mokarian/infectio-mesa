@@ -6,7 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import os
 
-from infectio.visualization.matplot import Matplot
+from infectio.visualization.matplot_gui import Matplot
 
 from model import TestModel
 from cell import State

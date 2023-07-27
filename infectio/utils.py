@@ -15,7 +15,7 @@ def direction_noise(vec, max_noise_radian):
     return rotate_vector(vec, np.random.uniform(-max_noise_radian, max_noise_radian))
 
 
-def two_slope_production(t, max_value, t1, t2):
+def two_slope_function(t, max_value, t1, t2):
     """Utility function for two-slope molecule production.
 
     Args:
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     # Test for two_slope_production
     def test_two_slope_production():
         T = np.arange(0, 50)
-        plt.plot(T, [two_slope_production(t, 1, 20, 40) for t in T])
+        plt.plot(T, [two_slope_function(t, 1, 20, 40) for t in T])
         plt.waitforbuttonpress()
 
     # test_direction_noise()

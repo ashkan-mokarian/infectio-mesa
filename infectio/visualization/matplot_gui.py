@@ -77,7 +77,6 @@ class Matplot:
             # Compute center of the convex hull
             center = np.mean(outer_points, axis=0)
             # Compute radii
-            aaa = outer_points - center
             radii = np.linalg.norm(outer_points - center, axis=-1)
 
         else:
@@ -90,9 +89,18 @@ class Matplot:
 
         self.ax_lin_radius.plot(
             self.steps,
-            np.array([self.radii_max, self.radii_mean, self.radii_min]).T,
+            np.array(
+                [
+                    self.radii_max,
+                    self.radii_mean,
+                    self.radii_min,
+                ]
+            ).T,
         )
-        self.ax_lin_radius.legend(["max", "mean", "min"], loc="center left")
+        self.ax_lin_radius.legend(
+            ["max", "mean", "min"],
+            loc="center left",
+        )
 
     def plot_lin_count(self, state_lists):
         """SIR number line plots"""

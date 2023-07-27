@@ -6,7 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import os
 
-from infectio.visualization.matplot import Matplot
+from infectio.visualization.matplot_gui import Matplot
 
 from model import Model
 from cell import State
@@ -32,9 +32,10 @@ if __name__ == "__main__":
         model.step()
         plt.pause(0.000001)
     print(f"Elapsed time: {time.perf_counter() - start_time:.3f}")
-    # Debugging gradient directions
-    # fig, ax = plt.subplots()
-    # ax.hist(model.particle.grad_degrees, bins=360)
-    # ax.set_title("move direction histogram")
+
+    # Final results
+    print(
+        f"Average radial velocity of infected cells: {model.reporters['radial_velocity_of_infected_cells'].average_radial_velocity() / 30 * 3.1746:.3f} um/min"
+    )
 
     plt.waitforbuttonpress()
