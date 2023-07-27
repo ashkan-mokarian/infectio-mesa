@@ -1,6 +1,8 @@
 # Infectio
 
-Agent-based modeling for Virological Plaque using Mesa library.
+Agent-based modeling for Virological Plaque.
+
+![sample of simulation visualization](./attachments/sample_simulation.gif)
 
 # How to use
 
