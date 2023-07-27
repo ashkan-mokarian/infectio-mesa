@@ -15,7 +15,7 @@ import options as opt
 
 if __name__ == "__main__":
     # file_name = "output/plots/plot_{}.png"
-    # os.makedirs(file_name.format(0), exist_ok=True)
+    # os.makedirs(file_name.format(0).split("/")[0], exist_ok=True)
     start_time = time.perf_counter()
     model = Model(2500, 600, 600)
     state_style_dict = {
@@ -35,7 +35,8 @@ if __name__ == "__main__":
 
     # Final results
     print(
-        f"Average radial velocity of infected cells: {model.reporters['radial_velocity_of_infected_cells'].average_radial_velocity() / 30 * 3.1746:.3f} um/min"
+        f"Average radial velocity of infected cells: "
+        f"{model.reporters['radial_velocity_of_infected_cells'].average_radial_velocity():.3f} um/min"
     )
 
     plt.waitforbuttonpress()

@@ -1,0 +1,115 @@
+"""
+Classes to obtain model metrics.
+"""
+
+import numpy as np
+
+
+# TODO: Add this as default to the model. Instead of using default mesa scheduler
+# use lists based on the state of the agents. This is more flexible since many
+# of the functionalities depends on the state of the agents.
+class StateList:
+    def __init__(self, model, states):
+        self.model = model
+        self.states = states
+        self.state_lists = {state: [] for state in self.states}
+
+    def update(self):
+        self.state_lists = {state: [] for state in self.states}
+        [self.state_lists[a.state].append(a) for a in self.model.schedule.agents]
+
+
+class StatePos:
+    """Tracks x,y positions of the states given at initialization as numpy
+    arrays in a state dictionary."""
+
+    def __init__(self, states, state_list: StateList):
+        self.states = states
+        self.all_states_lists = state_list
+        self.state_nppos = {state: np.array([]) for state in self.states}
+
+    def update(self):
+        for state in self.states:
+            self.state_nppos[state] = np.array(
+                [a.pos for a in self.all_states_lists.state_lists[state]]
+            )
+
+    def get_xy_np_pos(self, state):
+        return self.state_nppos[state]
+
+
+class Radius:
+    """Collects statistics of radii.
+
+    The group of cells need to be specified at each update step. Center is either
+    fixed and given at initialization or can be updated at each update step. Also
+    plots the radius statistics at each step."""
+
+    def __init__(self, center=None):
+        self.center = center
+        self.radii_mean = []
+        self.radii_std = []
+        self.radii_min = []
+        self.radii_max = []
+
+    def _update_lists(self, mean, std, min, max):
+        self.radii_mean.append(mean)
+        self.radii_std.append(std)
+        self.radii_min.append(min)
+        self.radii_max.append(max)
+
+    def update(self, cell_pos_array, center=None):
+        if self.center is None:
+            assert (
+                center is not None
+            ), "Center must be specified for Radius reporter not initialized with center"
+        if cell_pos_array is None:
+            radii = np.array([0])
+        else:
+            radii = np.linalg.norm(cell_pos_array - self.center, axis=-1)
+        self._update_lists(radii.mean(), radii.std(), radii.min(), radii.max())
+
+
+class RadialVelocity:
+    """Keeps track of the radial velocity of the infected cells.
+
+    Radial velocity is maximum radial component of the trajectory of the infected.
+    This class stores the maximum radial for each index."""
+
+    # TODO: see if you can get a reference to the state list at initialization
+    # and not pass the list each time in update method
+    def __init__(self, center):
+        self.center = center
+        self.radial_velocity = {}
+
+    def update(self, cell_list):
+        for cell in cell_list:
+            uid = cell.unique_id
+            pos = cell.pos
+            if uid not in self.radial_velocity.keys():
+                self.radial_velocity[uid] = {
+                    "max_rad_velocity": -np.inf,
+                    "last_pos": pos,
+                }
+            else:
+                last_pos = self.radial_velocity[uid]["last_pos"]
+                rhat = (last_pos - self.center) / np.linalg.norm(last_pos - self.center)
+                radial_velocity = np.dot(rhat, pos - last_pos)
+                self.radial_velocity[uid]["max_rad_velocity"] = max(
+                    radial_velocity, self.radial_velocity[uid]["max_rad_velocity"]
+                )
+
+    def average_radial_velocity(self):
+        """Average radial velocity of all tracked cells computed based on
+        backward difference of simulation steps (normalize accordingly when using.)"""
+        return (
+            np.mean(
+                [
+                    self.radial_velocity[uid]["max_rad_velocity"]
+                    for uid in self.radial_velocity.keys()
+                    if self.radial_velocity[uid]["max_rad_velocity"] > -np.inf
+                ]
+            )
+            / 30
+            * 3.1746
+        )  # normalize to um/min TODO: use options and not hardcode this

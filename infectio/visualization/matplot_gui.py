@@ -7,15 +7,18 @@ import matplotlib.colors as mcolors
 class Matplot:
     """Plots different visualizations using matplotlib.pyplot."""
 
-    def __init__(self, model, State, state_style_dict, figsize=(14, 10)):
+    def __init__(self, model, State, state_style_dict, figsize=(14, 12)):
         self.fig = plt.figure(figsize=figsize)
-        grid = plt.GridSpec(5, 7, wspace=0.1, hspace=0.5)
-        self.ax_pos = self.fig.add_subplot(grid[:3, :3])
-        self.ax_dif = self.fig.add_subplot(grid[:3, 3:])
-        self.ax_colorbar = self.fig.add_subplot(grid[:3, -1], frameon=False)
-        self.ax_lin_radius = self.fig.add_subplot(grid[3, :])
+        grid = plt.GridSpec(7, 9, wspace=0.1, hspace=0.1)
+        self.ax_pos = self.fig.add_subplot(grid[:4, :4])
+        self.ax_dif = self.fig.add_subplot(grid[:4, 4:])
+        self.ax_colorbar = self.fig.add_subplot(grid[:4, -1], frameon=False)
+        self.ax_lin_radius = self.fig.add_subplot(grid[4, :])
         self.ax_lin_radius.set_xticks([])
-        self.ax_lin_count = self.fig.add_subplot(grid[4, :], sharex=self.ax_lin_radius)
+        self.ax_lin_radial_velocity = self.fig.add_subplot(grid[5, :])
+        self.ax_lin_radial_velocity.set_xticks([])
+        self.ax_lin_count = self.fig.add_subplot(grid[6, :])
+        self.ax_lin_count.set_xlabel("hpi")
 
         self.ax_pos.set_aspect("auto")
         self.ax_dif.set_aspect("auto")
@@ -41,15 +44,19 @@ class Matplot:
         self.radii_max = []
         self.radii_min = []
 
+        # For radial velocity
+        self.radial_velocity = []
+
     def update(self, step=None):
         # Initialize three lists for each cell state
         state_lists = {k: [] for k in self.State}
         _ = [state_lists[a.state].append(a) for a in self.model.schedule.agents]
         self.plot_pos(state_lists)
         if step is None:
-            step = self.steps[-1] if self.steps else 0
+            step = self.steps[-1] + 1 if self.steps else 0
         self.steps.append(step)
         self.plot_lin_radius(state_lists[self.State.I])
+        self.plot_lin_radius_velocity()
         self.plot_lin_count(state_lists)
         self.plot_particle()
 
@@ -69,6 +76,7 @@ class Matplot:
         """Radius line plots"""
         self.ax_lin_radius.cla()
         self.ax_lin_radius.set_xticks([])
+        self.ax_lin_radius.set_ylabel("radius (um) to center of convex")
         if len(infected_cells) >= 3:
             # Get list of infected cells on the boundary of the convex hull
             points = [a.pos for a in infected_cells]
@@ -77,7 +85,8 @@ class Matplot:
             # Compute center of the convex hull
             center = np.mean(outer_points, axis=0)
             # Compute radii
-            radii = np.linalg.norm(outer_points - center, axis=-1)
+            radii = (outer_points - center) * 3.1746  # pixel to um
+            radii = np.linalg.norm(radii, axis=-1)
 
         else:
             # no convex hull for 1 or 2 infected cells
@@ -102,18 +111,38 @@ class Matplot:
             loc="center left",
         )
 
+    def plot_lin_radius_velocity(self):
+        self.ax_lin_radial_velocity.cla()
+        self.ax_lin_radial_velocity.set_xticks([])
+        self.radial_velocity.append(
+            self.model.reporters[
+                "radial_velocity_of_infected_cells"
+            ].average_radial_velocity()
+        )
+        self.ax_lin_radial_velocity.plot(
+            self.steps,
+            self.radial_velocity,
+            label="radial velocity (um/min)",
+        )
+        self.ax_lin_radial_velocity.legend(loc="center left")
+
     def plot_lin_count(self, state_lists):
         """SIR number line plots"""
         self.ax_lin_count.cla()
+        steps_in_hrs = [
+            step / 6 for step in self.steps
+        ]  # every step is 10 mins = 1/6 hrs
         for k, v in self.num_lists.items():
             v.append(len(state_lists[k]))
             self.ax_lin_count.plot(
-                self.steps,
+                steps_in_hrs,
                 v,
                 "-" + self.state_style_dict[k]["color"],
                 label=f"{k.value}: {v[-1]}",
             )
         self.ax_lin_count.legend(loc="center left")
+        self.ax_lin_count.set_xlabel("hpi")
+        # self.ax_lin_count.set_xticks([step / 2 for step in self.steps])
 
     def plot_particle(self):
         self.ax_dif.cla()  # This makes the program run much faster
