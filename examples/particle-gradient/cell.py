@@ -13,15 +13,6 @@ class State(Enum):
     I = "Infected"
 
 
-def cell_speed(state: State):
-    return {State.S: 1, State.I: 5}[state]
-
-
-# Search radius for deciding cell-cell infection rate based on number of
-# infected cells in the radius
-CELL2CELL_INFECTION_RADIUS_SEARCH = 5
-
-
 # For now, let's choose a simple sigmoid function for deciding cell-cell infection chance
 def cell2cell_infection_chance(num_infected_neighbors):
     if num_infected_neighbors == 0:
@@ -41,10 +32,6 @@ class Cell(mesa.Agent):
         # Cell state
         self.state = State.S
         self.time_infected = None
-
-    @property
-    def speed(self):
-        return cell_speed(self.state)
 
     def particle_gradient_direction(self):
         """Returns gradient direction of particle"""
@@ -82,7 +69,9 @@ class Cell(mesa.Agent):
         infected_neighbors = [
             c
             for c in self.model.space.get_neighbors(
-                self.pos, radius=CELL2CELL_INFECTION_RADIUS_SEARCH, include_center=False
+                self.pos,
+                radius=opt.CELL2CELL_INFECTION_RADIUS_SEARCH,
+                include_center=False,
             )
             if c.time_infected
         ]  # c.time_infected checks for both, if cell is

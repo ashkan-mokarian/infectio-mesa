@@ -15,3 +15,7 @@ particle_diffusion_time_steps_per_each_model_step = 30
 # 10 minutes) ~= 300 images in total, almost half of the dataset duration which
 # where taken from 24h to 48h post infection.
 N_SIM_STEPS = 300
+
+# Search radius for deciding cell-cell infection rate based on number of
+# infected cells in the radius
+CELL2CELL_INFECTION_RADIUS_SEARCH = 5
