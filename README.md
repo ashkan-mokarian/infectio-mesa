@@ -7,6 +7,8 @@ Agent-based modeling for Virological Plaque.
 # How to use
 
 ## Install dependecies
+Conda: `conda create env -f environment.yml`.
+
 [Poetry](https://python-poetry.org/) is needed. Run `poetry install` to create python virtual environment. To activate
 the environment either use `poetry run python <.py file>` or activate a shell environment using `poetry shell`.
 
