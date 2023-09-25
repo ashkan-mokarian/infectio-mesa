@@ -17,7 +17,7 @@ class State(Enum):
 def cell2cell_infection_chance(num_infected_neighbors):
     if num_infected_neighbors == 0:
         return 0.0
-    return 1 / (1 + np.exp(-0.5 * (num_infected_neighbors - 5)))
+    return 1 / (1 + np.exp((num_infected_neighbors - 2)))
 
 
 class Cell(mesa.Agent):

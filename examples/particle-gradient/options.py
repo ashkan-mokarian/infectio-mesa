@@ -2,9 +2,10 @@ import numpy as np
 
 PARA_PRODUCE_MAX = 1
 PARA_PRODUCE_T1 = 15
-PARA_PRODUCE_T2 = 40
-GRADIENT_SPEED = 1
-RW_SPEED = 0.1
+PARA_PRODUCE_T2 = 40  # Not touching these for now
+# Speeds in terms of pixels per time step
+GRADIENT_SPEED = 0.5
+RW_SPEED = 0.25
 GRADIENT_DIRECTION_NOISE_MAX_RADIAN = np.pi / 3
 
 # particle_diffusion_time_steps_per_each_model_step = 30
@@ -22,7 +23,7 @@ N_SIM_STEPS = 300
 
 # Search radius for deciding cell-cell infection rate based on number of
 # infected cells in the radius
-CELL2CELL_INFECTION_RADIUS_SEARCH = 5
+CELL2CELL_INFECTION_RADIUS_SEARCH = 8
 
 # Saving
 SAVE_ROOT = "./output/"
