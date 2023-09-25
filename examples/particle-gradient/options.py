@@ -5,7 +5,7 @@ PARA_PRODUCE_T1 = 15
 PARA_PRODUCE_T2 = 40
 GRADIENT_SPEED = 1
 RW_SPEED = 0.1
-GRADIENT_DIRECTION_NOISE_MAX_RADIAN = np.pi / 32
+GRADIENT_DIRECTION_NOISE_MAX_RADIAN = np.pi / 3
 
 # particle_diffusion_time_steps_per_each_model_step = 30
 particle_diffusion_time_steps_per_each_model_step = 40000
@@ -23,3 +23,10 @@ N_SIM_STEPS = 300
 # Search radius for deciding cell-cell infection rate based on number of
 # infected cells in the radius
 CELL2CELL_INFECTION_RADIUS_SEARCH = 5
+
+# Saving
+SAVE_ROOT = "./output/"
+SAVE_NAME = None  # If None, then the name will be generated automatically
+
+# Only for debug
+particle_diffusion_time_steps_per_each_model_step = 40

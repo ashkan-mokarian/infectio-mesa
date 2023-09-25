@@ -1,21 +1,33 @@
+import os
+import datetime
+import time
 import sys
+import csv
 
 sys.path.append(".")
 
-import time
 import matplotlib.pyplot as plt
-import os
 
 from infectio.visualization.matplot_gui import Matplot
 
 from model import Model
 from cell import State
 import options as opt
+import csv
 
+# Non-interactive backend to run on server and easier plotting
+plt.switch_backend("Agg")
 
 if __name__ == "__main__":
-    # file_name = "output/plots/plot_{}.png"
-    # os.makedirs(file_name.format(0).split("/")[0], exist_ok=True)
+    if opt.SAVE_NAME is None:
+        opt.SAVE_NAME = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    save_path = os.path.join(opt.SAVE_ROOT, opt.SAVE_NAME)
+    plot_path = os.path.join(save_path, "plots")
+    os.makedirs(plot_path)
+    plot_fn = os.path.join(plot_path, "plot{}.png")
+
+    save_data = []
+
     start_time = time.perf_counter()
     model = Model(2500, 600, 600)
     state_style_dict = {
@@ -28,10 +40,20 @@ if __name__ == "__main__":
     for t in range(opt.N_SIM_STEPS):
         print(f"step {t}/{opt.N_SIM_STEPS} Starting ...")
         plot.update(t)
-        # plt.savefig(file_name.format(t))
+        plt.savefig(plot_fn.format(t))
         model.step()
-        plt.pause(0.000001)
+        save_data.append(model.save_step(t))
+        # plt.pause(0.000001)
     print(f"Elapsed time: {time.perf_counter() - start_time:.3f}")
+
+    # Save data
+    with open(os.path.join(save_path, "pos.csv"), "w", newline="") as f:
+        writer = csv.writer(f)
+        # Write header
+        writer.writerow(["Frame", "CellID", "PosX", "PosY"])
+        # Write data for each frame
+        for frame_data in save_data:
+            writer.writerows(frame_data)
 
     # Final results
     print(
@@ -39,4 +61,4 @@ if __name__ == "__main__":
         f"{model.reporters['radial_velocity_of_infected_cells'].average_radial_velocity():.3f} um/min"
     )
 
-    plt.waitforbuttonpress()
+    # plt.waitforbuttonpress()

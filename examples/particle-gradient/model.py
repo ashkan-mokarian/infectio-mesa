@@ -77,3 +77,21 @@ class Model(mesa.Model):
         self.reporters["radial_velocity_of_infected_cells"].update(
             cell_list=self.reporters["state_lists"].state_lists[State.I]
         )
+
+    def save_step(self, frame):
+        """
+        Only saving position of cells since metrics can be computed from that.
+        """
+        frame_data = []
+
+        infected_cells = self.reporters["state_lists"].state_lists[State.I]
+        for ic in infected_cells:
+            frame_data.append(
+                [
+                    frame,
+                    ic.unique_id,
+                    "{:.2f}".format(ic.pos[0]),
+                    "{:.2f}".format(ic.pos[1]),
+                ]
+            )
+        return frame_data
