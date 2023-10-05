@@ -12,8 +12,11 @@ Conda: `conda create env -f environment.yml`.
 [Poetry](https://python-poetry.org/) is needed. Run `poetry install` to create python virtual environment. To activate
 the environment either use `poetry run python <.py file>` or activate a shell environment using `poetry shell`.
 
+venv: (Could not make conda nor poetry work on hemera, using venv instead) `python -m venv ./venv; source
+./venv/bin/activate; pip install -r requirements.txt;`
+
 ## Running examples
-Go into one of the example models in *examples* folder and run the corresponding `run.py` file.
+Either with infectio installed or CWD at root of the project, call `python run.py` for any model in the examples folder.
 
 ## Create a new model
 TBD
