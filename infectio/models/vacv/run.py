@@ -38,11 +38,25 @@ def run(opt):
         plt.switch_backend("Agg")
     plot = Matplot(model, State, state_style_dict)
 
+    print(
+        "{:<10} {:<10} {:<10} {:<10} {:<10}".format(
+            "# Step", "# inf", "avg radius", "max radius", "rad vel"
+        )
+    )
     for t in range(opt.n_sim_steps):
-        print(f"step {t}/{opt.n_sim_steps} Starting ...")
         plot.update(t)
         plt.savefig(plot_fn.format(t))
         model.step()
+        mean_radius = model.reporters["radius2infcenter"].radii_mean[-1]
+        max_radius = model.reporters["radius2infcenter"].radii_max[-1]
+        rad_velocity = model.reporters[
+            "radial_velocity_of_infected_cells"
+        ].average_radial_velocity()
+        count_infected = len(model.reporters["state_lists"].state_lists[State.I])
+        print("{:<10}".format(f"{t+1:03}/{opt.n_sim_steps}"), end="")
+        print(
+            f"{count_infected:<10}{mean_radius:<10.2f}{max_radius:<10.2f}{rad_velocity:<10.2f}"
+        )
         save_data.append(model.save_step(t))
         if opt.run_gui:
             plt.pause(0.000001)
@@ -57,13 +71,8 @@ def run(opt):
         for frame_data in save_data:
             writer.writerows(frame_data)
 
-    # Final results
-    print(
-        f"Average radial velocity of infected cells: "
-        f"{model.reporters['radial_velocity_of_infected_cells'].average_radial_velocity():.3f} um/min"
-    )
-
-    # plt.waitforbuttonpress()
+    if opt.run_gui:
+        plt.waitforbuttonpress()
 
 
 def get_opts():
