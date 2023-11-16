@@ -1,5 +1,7 @@
+from datetime import datetime
 import numpy as np
 from matplotlib import pyplot as plt
+import os
 
 
 def rotate_vector(vec, radian):
@@ -39,6 +41,19 @@ def two_slope_function(t, max_value, t1, t2):
         return max_value * (1 - (t - t1) / (t2 - t1))
     else:
         return 0
+
+
+def get_save_path(root, name=None):
+    """Handy function to create project root directory, useful when running
+    multiple jobs in a cluster"""
+    if name is None:
+        name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    save_path = os.path.join(root, name)
+    i = 1
+    while os.path.exists(save_path):
+        save_path = os.path.join(root, name + f"_{i}")
+        i += 1
+    return save_path
 
 
 if __name__ == "__main__":

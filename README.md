@@ -7,16 +7,25 @@ Agent-based modeling for Virological Plaque.
 # How to use
 
 ## Install dependecies
-Conda: `conda create env -f environment.yml`.
 
-[Poetry](https://python-poetry.org/) is needed. Run `poetry install` to create python virtual environment. To activate
-the environment either use `poetry run python <.py file>` or activate a shell environment using `poetry shell`.
+### Conda
+`conda create env -f environment.yml`.
 
-venv: (Could not make conda nor poetry work on hemera, using venv instead) `python -m venv ./venv; source
-./venv/bin/activate; pip install -r requirements.txt;`
+### venv
+Could not make conda nor poetry work on hemera, using venv instead: 
+```shell
+python -m venv ./venv;
+source ./venv/bin/activate;
+pip install -r requirements.txt;
+```
 
-## Running examples
-Either with infectio installed or CWD at root of the project, call `python run.py` for any model in the examples folder.
+## Run simulation
+
+### VACV + Epithelial model
+
+Create a config file (e.g. similiar to [default config](./infectio/models/vacv/default_config.ini)) and modify
+accordingly. You can also use arguments in CLI instead (take a look at `--help` for available options). Then with
+python environment active, run: `python(3) infectio/models/vacv/run.py -c path/to/config.py [optional arguments]`.
 
 ## Create a new model
 TBD
