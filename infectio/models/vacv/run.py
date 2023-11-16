@@ -25,6 +25,7 @@ def run(opt):
     plot_fn = os.path.join(plot_path, "plot{}.png")
 
     save_data = []
+    save_metric_data = []
 
     start_time = time.perf_counter()
     model = Model(2500, 600, 600, opt=opt)
@@ -58,6 +59,9 @@ def run(opt):
             f"{count_infected:<10}{mean_radius:<10.2f}{max_radius:<10.2f}{rad_velocity:<10.2f}"
         )
         save_data.append(model.save_step(t))
+        save_metric_data.append(
+            [t, count_infected, mean_radius, max_radius, rad_velocity]
+        )
         if opt.run_gui:
             plt.pause(0.000001)
     print(f"Elapsed time: {time.perf_counter() - start_time:.3f}")
@@ -70,6 +74,13 @@ def run(opt):
         # Write data for each frame
         for frame_data in save_data:
             writer.writerows(frame_data)
+    with open(os.path.join(save_path, "metric.csv"), "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(
+            ["Frame", "Infected_Count", "Mean_Radius", "Max_Radius", "Rad_Velocity"]
+        )
+        for frame_data in save_metric_data:
+            writer.writerow(frame_data)
 
     if opt.run_gui:
         plt.waitforbuttonpress()
