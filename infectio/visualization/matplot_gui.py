@@ -30,7 +30,7 @@ class Matplot:
         self.ax_colorbar.set_xticklabels([])
         self.colorbar = None
         # ax_dif colorbar normalizer
-        self.two_slope_norm = mcolors.TwoSlopeNorm(vmin=0, vcenter=0.1, vmax=10)
+        # self.difplot_normalizer = mcolors.TwoSlopeNorm(vmin=0, vcenter=0.1, vmax=10)
 
         self.model = model
         self.State = State
@@ -146,9 +146,24 @@ class Matplot:
 
     def plot_particle(self):
         self.ax_dif.cla()  # This makes the program run much faster
-        self.two_slope_norm.autoscale(self.model.particle.u)
+        data = self.model.particle.u.T
+
+        vmin = np.percentile(data, 5)
+        # vmax = np.percentile(data, 95)
+        vmax = np.max(data)
+        if vmax == 0:
+            vmax = 1
+        if vmin == 0:
+            vmin = 1e-10
         diff_plot = self.ax_dif.imshow(
-            self.model.particle.u.T, norm=self.two_slope_norm, origin="lower"
+            self.model.particle.u.T,
+            norm=mcolors.Normalize(vmin=vmin, vmax=vmax),
+            origin="lower",
+            cmap="turbo",
         )
-        if not self.colorbar:
+        if self.colorbar:
+            cax = self.colorbar.ax
+            cax.clear()
+            self.colorbar = self.fig.colorbar(diff_plot, ax=self.ax_colorbar, cax=cax)
+        else:
             self.colorbar = self.fig.colorbar(diff_plot, ax=self.ax_colorbar)
