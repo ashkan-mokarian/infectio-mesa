@@ -19,9 +19,9 @@
 #SBATCH -J infectio-param
 
 # stdouts
-# #SBATCH --output=out.log
-# #SBATCH --error=err.log
-
+#SBATCH --output=/dev/null
+#SBATCH --error=/dev/null
+j
 # Notification
 # Mail alert at BEGIN|END|FAIL|ALL
 # #SBATCH --mail-type=END
@@ -35,7 +35,7 @@ cleanup ()
 }
 trap 'cleanup' TERM
 
-LOG_FILE=./output/logs/_${SLURM_JOB_NAME}_${SLURM_JOB_ID}.log
+LOG_FILE=./output/logs/${SLURM_JOB_NAME}_${SLURM_JOB_ID}.log
 
 function Log {
 	local level=$1
@@ -71,7 +71,6 @@ Log INFO "allocated nodes ${NODES}"
 source ./venv/bin/activate >> ${LOG_FILE} 2>&1
 
 # Capture all arguments passed to this script
-args=("$@")
-python ./infectio/models/vacv/run.py "@{args[@]}" --n_sim_steps 3 >> ${LOG_FILE} 2>&1
+python ./infectio/models/vacv/run.py "@" --n_sim_steps 3 >> ${LOG_FILE} 2>&1
 
 Log INFO "JOB FINISH"
