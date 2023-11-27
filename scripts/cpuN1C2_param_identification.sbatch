@@ -71,6 +71,6 @@ Log INFO "allocated nodes ${NODES}"
 source ./venv/bin/activate >> ${LOG_FILE} 2>&1
 
 # Capture all arguments passed to this script
-python ./infectio/models/vacv/run.py "@" --n_sim_steps 3 >> ${LOG_FILE} 2>&1
+python ./infectio/models/vacv/run.py "$@" >> ${LOG_FILE} 2>&1
 
 Log INFO "JOB FINISH"

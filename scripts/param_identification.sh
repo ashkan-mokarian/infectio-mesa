@@ -19,7 +19,7 @@ for speed in "${randomwalk_speed[@]}"; do
                 for radius_value in "${c2c_radius_search[@]}"; do
                     save_name="--save_name rw_speed=${speed}-grad_speed=${grad_speed}-c2c_k=${k_value}-c2c_x0=${x0_value}-c2c_radius=${radius_value}"
                     # Call the second script and pass all arguments
-                    sbatch ./scripts/cpuN1C2_param_identification.sbatch $save_name "--randomwalk_speed" "$speed" "--gradient_speed" "$grad_speed" "--c2c_sigmoid_k $k_value" "--c2c_sigmoid_x0 $x0_value" "--c2c_radius_search $radius_value"
+                    sbatch ./scripts/cpuN1C2_param_identification.sbatch $save_name "--randomwalk_speed" "$speed" "--gradient_speed" "$grad_speed" "--c2c_sigmoid_k" "$k_value" "--c2c_sigmoid_x0" "$x0_value" "--c2c_radius_search" "$radius_value"
                 done
             done
         done

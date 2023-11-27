@@ -30,16 +30,18 @@ python environment active, run: `python(3) infectio/models/vacv/run.py -c path/t
 ## Create a new model
 TBD
 
-# Personal notes
+# Notes
 
-* Can we avoid discretization of particle scalar fields and work completely with
-well defined function. For example solve the diffusion with it, and also for
-gradient computations be able to use [this python package: numdifftools](https://numdifftools.readthedocs.io/en/latest/index.html).
+* vmin and vmax of colorbar are based on 5 and 95 % of the data. If vmax is max, then the rest of the plot except for a few locations is almost in the very low range of colorbar range and not very clear. Needs better clarification, but most probably because molecule diffusion very very slow in the medium and the single point peak stays large during the diffusion for few steps.
 
 * Assumption in code: x,y coords start from lower left. particle variable u also same, i.e. rows correspond with x and
 columns with y, first row is x=0 and first column is y=0. Therefore for ploting u, need to do
 plt.imshow(u.T, origin='lower')
 
-* Now, molecule released at int(x, y). Could also release with sub-pixel precision but not implemented.
+* cells are points. So molecules are produced at a single location. They also do not collide, ...
+
+* Can we avoid discretization of particle scalar fields and work completely with
+well defined function. For example solve the diffusion with it, and also for
+gradient computations be able to use [this python package: numdifftools](https://numdifftools.readthedocs.io/en/latest/index.html).
 
 * More accurate gradients? Look here [Structure tensor and diagonal gradients](https://bartwronski.com/2021/02/28/computing-gradients-on-grids-forward-central-and-diagonal-differences/)
