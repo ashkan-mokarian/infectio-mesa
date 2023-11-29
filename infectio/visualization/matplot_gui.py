@@ -157,7 +157,7 @@ class Matplot:
             vmin = 1e-10
         diff_plot = self.ax_dif.imshow(
             self.model.particle.u.T,
-            norm=mcolors.Normalize(vmin=vmin, vmax=vmax),
+            norm=mcolors.LogNorm(vmin=vmin, vmax=vmax),
             origin="lower",
             cmap="turbo",
         )
