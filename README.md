@@ -4,6 +4,15 @@ Agent-based modeling for Virological Plaque.
 
 ![sample of simulation visualization](./attachments/sample_simulation.gif)
 
+The image above shows the output of a simulation run. (top-left) shows spatial
+positions of infected (green) and susceptible (blue) cells, (top-right) shows
+concentrations of particles and molecules produced by the system in the same
+spatial space as top-left, and (three bottom rows) show metrics produced by the
+experiment, which are the radius of the plaque, average radial velocity, and
+susceptible and infected population sizes, from top to bottom. These metrics,
+possibly with others, are used to evaluate simulation with a reference which is
+obtained from real world plaque experiements.
+
 # How to use
 
 ## Install dependecies
