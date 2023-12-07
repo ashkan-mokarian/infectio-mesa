@@ -40,8 +40,8 @@ def run(opt):
     plot = Matplot(model, State, state_style_dict)
 
     print(
-        "{:<10} {:<10} {:<10} {:<10} {:<10}".format(
-            "# Step", "# inf", "avg radius", "max radius", "rad vel"
+        "{:<10} {:<10} {:<10} {:<10} {:<10} {:<10}".format(
+            "# Step", "t", "# inf", "avg radius", "max radius", "rad vel"
         )
     )
     for t in range(opt.n_sim_steps):
@@ -56,11 +56,11 @@ def run(opt):
         count_infected = len(model.reporters["state_lists"].state_lists[State.I])
         print("{:<10}".format(f"{t+1:03}/{opt.n_sim_steps}"), end="")
         print(
-            f"{count_infected:<10}{mean_radius:<10.2f}{max_radius:<10.2f}{rad_velocity:<10.2f}"
+            f"{t * (1/6):<10.2f}{count_infected:<10}{mean_radius:<10.2f}{max_radius:<10.2f}{rad_velocity:<10.2f}"
         )
         save_data.append(model.save_step(t))
         save_metric_data.append(
-            [t, count_infected, mean_radius, max_radius, rad_velocity]
+            [t * (1 / 6), count_infected, mean_radius, max_radius, rad_velocity]
         )
         if opt.run_gui:
             plt.pause(0.000001)
@@ -77,7 +77,7 @@ def run(opt):
     with open(os.path.join(save_path, "metric.csv"), "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(
-            ["Frame", "Infected_Count", "Mean_Radius", "Max_Radius", "Rad_Velocity"]
+            ["t", "Infected_Count", "Mean_Radius", "Max_Radius", "Rad_Velocity"]
         )
         for frame_data in save_metric_data:
             writer.writerow(frame_data)
