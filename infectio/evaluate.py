@@ -6,6 +6,7 @@ distributions e.g. extracted from dataset.
 from typing import List, Union
 import argparse
 import pandas as pd
+import plotly.graph_objects as go
 import numpy as np
 import os
 
@@ -32,11 +33,7 @@ def bulk_evaluate(
         row = {}
         row["target_folder"] = target_folder
         targetdf = pd.read_csv(os.path.join(target_root, target_folder, "metric.csv"))
-        # TODO: Temporary, next batch of experiemnts have correct col name
-        targetdf = targetdf.rename(columns={"Frame": time_colname})
-        targetdf[time_colname] = targetdf[time_colname] * 1 / 6
         targetdf.set_index(time_colname, inplace=True)
-        # ////////////////////////////////////////////////////////////////
         dists = evaluate_simulation_against_reference(
             refdf,
             targetdf,
@@ -47,6 +44,9 @@ def bulk_evaluate(
         )
         for colname, dist in zip(columns[1:], dists):
             row[colname] = dist
+        # TODO: Sum of un-normalized dists not very good. Maybe not normalizing
+        # for others makes sense, but not for sum.
+        row["Sum-dist"] = sum(dists)
         eval_results.append(row)
 
     return pd.DataFrame(eval_results, index=None)
@@ -58,7 +58,6 @@ def evaluate_simulation_against_reference(
     ref_mean_colnames: Union[str, List[str]],
     ref_std_colnames: Union[str, List[str]],
     target_colnames: Union[str, List[str]],
-    time_colname: str = "t",
 ) -> List[float]:
     """Computes distance measures of a time-series to distribution for a list of metrics.
 
@@ -68,7 +67,6 @@ def evaluate_simulation_against_reference(
         ref_mean_colname (Union[str, List[str]]): Column names of means of reference timeseries dist.
         ref_std_colname (Union[str, List[str]]): Column names of stds of reference timeseries dist.
         target_colname (Union[str, List[str]]): Column name of the target metric.
-        time_colname (str, optional): Column name of the time. Defaults to "t".
 
     Returns:
         List[float]: distance measures of each metric.
@@ -127,6 +125,44 @@ def aligned_timeseries_point2distribution_distance(ref_mean, ref_std, target) ->
     return np.sum(np.abs(target - ref_mean) / ref_std)
 
 
+def visualize_bulk_evaluation_results(eval_results: pd.DataFrame):
+    df = replace_experiment_name_with_params(eval_results)
+
+    fig = go.Figure(
+        data=go.Parcoords(
+            line=dict(color=df["Sum-dist"], colorscale="Blackbody", showscale=True),
+            dimensions=[
+                dict(values=df[c], label=c, tickvals=df[c].unique())
+                for c in df.columns
+                if "-dist" not in c
+            ]
+            + [dict(values=df[c], label=c) for c in df.columns if "-dist" in c],
+            unselected=dict(line=dict(opacity=0)),
+        ),
+    )
+    return fig
+
+
+def replace_experiment_name_with_params(df, column_name="target_folder"):
+    return pd.concat(
+        [
+            pd.json_normalize(df["target_folder"].apply(extract_parameters_from_name)),
+            df.drop(["target_folder"], axis=1),
+        ],
+        axis=1,
+    )
+
+
+def extract_parameters_from_name(name):
+    name = name.split("-")
+    params = {}
+    for p in name:
+        if "=" in p:
+            k, v = p.split("=")
+            params[k] = v
+    return params
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Bulk evaluation of simulation results."
@@ -164,3 +200,20 @@ if __name__ == "__main__":
     )
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
     eval_results.to_csv(args.output)
+    print("-- Evaluation results saved to: ", args.output)
+    for colname in eval_results.columns:
+        if "-dist" in colname:
+            print(f"-- Top experiments based on: {colname}")
+            print(colname, eval_results[colname].describe())
+            print(eval_results.sort_values(colname, ascending=True).head())
+
+    fig = visualize_bulk_evaluation_results(eval_results)
+
+    from plotly.offline import plot
+
+    plot(
+        fig,
+        filename=os.path.join(
+            os.path.dirname(args.output), "bulk_eval_parallel_coordinate_plotly.html"
+        ),
+    )
