@@ -35,12 +35,7 @@ def bulk_evaluate(
         targetdf = pd.read_csv(os.path.join(target_root, target_folder, "metric.csv"))
         targetdf.set_index(time_colname, inplace=True)
         dists = evaluate_simulation_against_reference(
-            refdf,
-            targetdf,
-            ref_mean_colnames,
-            ref_std_colnames,
-            target_colnames,
-            time_colname,
+            refdf, targetdf, ref_mean_colnames, ref_std_colnames, target_colnames
         )
         for colname, dist in zip(columns[1:], dists):
             row[colname] = dist

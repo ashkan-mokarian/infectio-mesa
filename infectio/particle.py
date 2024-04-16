@@ -11,8 +11,8 @@ class Homogenous2dDiffusion:
     """Simple diffusion solver for homogenous diffusivity in 2D, aka Heat
     equation.
 
-    Uses average kernel for for each step of diffusion. I think this leads to
-    inaccurate results due to the naive discretization."""
+    Uses average kernel for for each step of diffusion.
+    """
 
     def __init__(
         self,
