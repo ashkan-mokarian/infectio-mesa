@@ -13,10 +13,14 @@ class Model(mesa.Model):
     randomly, infects one center cell, add particles, and adds relevant reporters.
     """
 
-    def __init__(self, num_agents, width, height, opt):
+    def __init__(self, opt):
         super().__init__()
-        self.num_agents = num_agents
         self.opt = opt
+        self.num_agents = opt.num_cells
+        self.width = opt.width
+        self.height = opt.height
+        width = self.width
+        height = self.height
 
         # By having time_infected property for each cell, we don't need to have
         # Multiple schedulers for each state. time_infected also becomes handy
@@ -30,8 +34,8 @@ class Model(mesa.Model):
         if not opt.disable_diffusion:
             # VGF particles in space, used for molecular diffusion
             # \gamma = alpha * delta_t / delta_x ** 2 where alpha is the diffusion constant
-            diffusion_delta_t = 10 * 60 / opt.diff_steps
-            GAMMA = opt.alpha * diffusion_delta_t / (3.1746 * 1e-4) ** 2
+            diffusion_delta_t = opt.time_per_step / opt.diff_steps
+            GAMMA = opt.alpha * diffusion_delta_t / (opt.pixel_length**2)
             self.particle = Homogenous2dDiffusion(
                 GAMMA,
                 width,

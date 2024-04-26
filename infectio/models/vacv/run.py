@@ -28,7 +28,7 @@ def run(opt):
     save_metric_data = []
 
     start_time = time.perf_counter()
-    model = Model(2500, 600, 600, opt=opt)
+    model = Model(opt=opt)
     state_style_dict = {
         State.S: {"color": "b", "marker": "o", "markersize": 4},
         State.I: {"color": "g", "marker": "o", "markersize": 4},
@@ -41,26 +41,37 @@ def run(opt):
 
     print(
         "{:<10} {:<10} {:<10} {:<10} {:<10} {:<10}".format(
-            "# Step", "t", "# inf", "avg radius", "max radius", "rad vel"
+            "# Step",
+            "t(hours)",
+            "# inf",
+            "avg radius(um)",
+            "max radius(um)",
+            "rad vel(um/min)",
         )
     )
     for t in range(opt.n_sim_steps):
+        t_in_hours = t * (opt.time_per_step / 3600)
         plot.update(t)
         plt.savefig(plot_fn.format(t))
         model.step()
         mean_radius = model.reporters["radius2infcenter"].radii_mean[-1]
+        mean_radius *= opt.pixel_length
         max_radius = model.reporters["radius2infcenter"].radii_max[-1]
+        max_radius *= opt.pixel_length
         rad_velocity = model.reporters[
             "radial_velocity_of_infected_cells"
         ].average_radial_velocity()
+        rad_velocity *= opt.pixel_length / (
+            opt.time_per_step / 60
+        )  # TODO: double check these numbers (gives um/min)
         count_infected = len(model.reporters["state_lists"].state_lists[State.I])
         print("{:<10}".format(f"{t+1:03}/{opt.n_sim_steps}"), end="")
         print(
-            f"{t * (1/6):<10.2f}{count_infected:<10}{mean_radius:<10.2f}{max_radius:<10.2f}{rad_velocity:<10.2f}"
-        )
+            f"{t_in_hours:<10.2f}{count_infected:<10}{mean_radius:<10.2f}{max_radius:<10.2f}{rad_velocity:<10.2f}"
+        )  # 3600 to change seconds to hours.
         save_data.append(model.save_step(t))
         save_metric_data.append(
-            [t * (1 / 6), count_infected, mean_radius, max_radius, rad_velocity]
+            [t_in_hours, count_infected, mean_radius, max_radius, rad_velocity]
         )
         if opt.run_gui:
             plt.pause(0.000001)
@@ -96,6 +107,15 @@ def get_opts():
     p.add("--save_name", type=str, help="Project save name. current date if not given")
     p.add("--run_gui", action="store_true", help="show plots.")
     p.add("--n_sim_steps", type=int)
+    p.add(
+        "--time_per_step",
+        type=float,
+        help="time in seconds being simulated in one step.",
+    )
+    p.add("--pixel_length", type=float, help="length of a pixel in micro meters (um).")
+    p.add("--width", type=int, help="width of the simulation in pixels.")
+    p.add("--height", type=int, help="height of the simulation in pixels.")
+    p.add("--num_cells", type=int, help="number of cells to simulate.")
     p.add("--disable_diffusion", action="store_true")
     p.add("--alpha", type=float)
     p.add("--diff_steps", type=int)

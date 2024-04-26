@@ -41,6 +41,11 @@ TBD
 
 # Notes
 
+* Default num_cells = 2750 number used in configs are based on the density of
+cells computed on a single image with pixel dimensions that could possibly be 
+wrong. So be cautious about its correctness. The calculations you can find at 
+MacBookM1->workspace/Cellpose/01_analyze_results.ipynb
+
 * vmin and vmax of colorbar are based on 5 and 95 % of the data. If vmax is max, then the rest of the plot except for a few locations is almost in the very low range of colorbar range and not very clear. Needs better clarification, but most probably because molecule diffusion very very slow in the medium and the single point peak stays large during the diffusion for few steps.
 
 * Assumption in code: x,y coords start from lower left. particle variable u also same, i.e. rows correspond with x and

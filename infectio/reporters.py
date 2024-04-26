@@ -102,14 +102,12 @@ class RadialVelocity:
     def average_radial_velocity(self):
         """Average radial velocity of all tracked cells computed based on
         backward difference of simulation steps (normalize accordingly when using.)"""
-        return (
-            np.mean(
-                [
-                    self.radial_velocity[uid]["max_rad_velocity"]
-                    for uid in self.radial_velocity.keys()
-                    if self.radial_velocity[uid]["max_rad_velocity"] > -np.inf
-                ]
-            )
-            / 30
-            * 3.1746
-        )  # normalize to um/min TODO: use options and not hardcode this
+        rad_vels = [
+            self.radial_velocity[uid]["max_rad_velocity"]
+            for uid in self.radial_velocity.keys()
+            if self.radial_velocity[uid]["max_rad_velocity"] > -np.inf
+        ]
+        if len(rad_vels) == 0:
+            return np.nan
+        else:
+            return np.nanmean(rad_vels)
