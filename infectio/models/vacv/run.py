@@ -96,6 +96,7 @@ def get_opts():
     p.add("--save_name", type=str, help="Project save name. current date if not given")
     p.add("--run_gui", action="store_true", help="show plots.")
     p.add("--n_sim_steps", type=int)
+    p.add("--disable_diffusion", action="store_true")
     p.add("--alpha", type=float)
     p.add("--diff_steps", type=int)
     p.add("--randomwalk_speed", type=float)

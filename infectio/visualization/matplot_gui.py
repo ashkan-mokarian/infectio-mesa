@@ -145,6 +145,8 @@ class Matplot:
         # self.ax_lin_count.set_xticks([step / 2 for step in self.steps])
 
     def plot_particle(self):
+        if self.model.particle is None:
+            return
         self.ax_dif.cla()  # This makes the program run much faster
         data = self.model.particle.u.T
 

@@ -35,6 +35,8 @@ class Cell(mesa.Agent):
 
     def particle_gradient_direction(self):
         """Returns gradient direction of particle"""
+        if self.model.particle is None:
+            return np.array([0, 0])
         grad = self.model.particle.grad(self.pos)
         return grad
 
@@ -86,6 +88,8 @@ class Cell(mesa.Agent):
             self.infect_cell()
 
     def add_para_molecule_during_infection(self):
+        if self.model.particle is None:
+            return
         x, y = self.pos
         # Two-slope production for infected cells
         self.model.particle.u[int(x), int(y)] += two_slope_function(

@@ -26,17 +26,18 @@ class Model(mesa.Model):
         self.space = mesa.space.ContinuousSpace(
             x_max=width, y_max=height, torus=True
         )  # TODO: remove torus, also need to change cell.move()
-
-        # VGF particles in space, used for molecular diffusion
-        # \gamma = alpha * delta_t / delta_x ** 2 where alpha is the diffusion constant
-        diffusion_delta_t = 10 * 60 / opt.diff_steps
-        GAMMA = opt.alpha * diffusion_delta_t / (3.1746 * 1e-4) ** 2
-        self.particle = Homogenous2dDiffusion(
-            GAMMA,
-            width,
-            height,
-            opt.diff_steps,
-        )
+        self.particle = None
+        if not opt.disable_diffusion:
+            # VGF particles in space, used for molecular diffusion
+            # \gamma = alpha * delta_t / delta_x ** 2 where alpha is the diffusion constant
+            diffusion_delta_t = 10 * 60 / opt.diff_steps
+            GAMMA = opt.alpha * diffusion_delta_t / (3.1746 * 1e-4) ** 2
+            self.particle = Homogenous2dDiffusion(
+                GAMMA,
+                width,
+                height,
+                opt.diff_steps,
+            )
 
         state_lists = StateList(self, State)
         xypos = StatePos([State.I], state_lists)
@@ -70,7 +71,8 @@ class Model(mesa.Model):
         """
         A model step. Used for collecting data and advancing the schedule
         """
-        self.particle.step()
+        if self.particle:
+            self.particle.step()
         self.schedule.step()
         self.reporters["state_lists"].update()
         self.reporters["xypos"].update()
