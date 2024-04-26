@@ -75,7 +75,6 @@ def run(opt):
         )
         if opt.run_gui:
             plt.pause(0.000001)
-    print(f"Elapsed time: {time.perf_counter() - start_time:.3f}")
 
     # Save data
     with open(os.path.join(save_path, "pos.csv"), "w", newline="") as f:
@@ -93,6 +92,9 @@ def run(opt):
         for frame_data in save_metric_data:
             writer.writerow(frame_data)
 
+    # Add reference metrics to the last plot and save it
+
+    print(f"Elapsed time: {time.perf_counter() - start_time:.3f}")
     if opt.run_gui:
         plt.waitforbuttonpress()
 
@@ -128,6 +130,11 @@ def get_opts():
     p.add("--c2c_sigmoid_k", type=float)
     p.add("--c2c_sigmoid_x0", type=float)
     p.add("--c2c_radius_search", type=float)
+    p.add(
+        "--reference_file",
+        type=str,
+        help="path to reference file. Contains mean and std of number of infected cells and radius of plaque across different times.",
+    )
 
     options = p.parse_args()
     print(p.format_values())
