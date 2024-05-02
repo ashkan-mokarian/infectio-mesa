@@ -2,6 +2,7 @@ import numpy as np
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import pandas as pd
 
 
 class Matplot:
@@ -97,7 +98,7 @@ class Matplot:
         self.radii_min.append(np.min(radii))
 
         self.ax_lin_radius.plot(
-            self.steps,
+            [step * (self.model.opt.time_per_step / 3600) for step in self.steps],
             np.array(
                 [
                     self.radii_max,
@@ -105,9 +106,10 @@ class Matplot:
                     self.radii_min,
                 ]
             ).T,
+            label=["max", "mean", "min"],
         )
         self.ax_lin_radius.legend(
-            ["max", "mean", "min"],
+            # ["max", "mean", "min"],
             loc="center left",
         )
 
@@ -120,7 +122,7 @@ class Matplot:
             ].average_radial_velocity()
         )
         self.ax_lin_radial_velocity.plot(
-            self.steps,
+            [step * (self.model.opt.time_per_step / 3600) for step in self.steps],
             self.radial_velocity,
             label="radial velocity (um/min)",
         )
@@ -130,8 +132,8 @@ class Matplot:
         """SIR number line plots"""
         self.ax_lin_count.cla()
         steps_in_hrs = [
-            step / 6 for step in self.steps
-        ]  # every step is 10 mins = 1/6 hrs
+            step * (self.model.opt.time_per_step / 3600) for step in self.steps
+        ]  # xticks are in hpi
         for k, v in self.num_lists.items():
             v.append(len(state_lists[k]))
             self.ax_lin_count.plot(
@@ -140,9 +142,8 @@ class Matplot:
                 "-" + self.state_style_dict[k]["color"],
                 label=f"{k.value}: {v[-1]}",
             )
-        self.ax_lin_count.legend(loc="center left")
         self.ax_lin_count.set_xlabel("hpi")
-        # self.ax_lin_count.set_xticks([step / 2 for step in self.steps])
+        self.ax_lin_count.legend(loc="center left")
 
     def plot_particle(self):
         if self.model.particle is None:
@@ -169,3 +170,51 @@ class Matplot:
             self.colorbar = self.fig.colorbar(diff_plot, ax=self.ax_colorbar, cax=cax)
         else:
             self.colorbar = self.fig.colorbar(diff_plot, ax=self.ax_colorbar)
+
+    def add_reference_metrics(self, reference_file):
+
+        def read_reference_metrics(
+            reference_file,
+            reference_colnames={
+                "count": {"t": "t", "inf-count-mean": "mean", "inf-count-std": "std"},
+                "radius": {
+                    "t": "t",
+                    "radius-mean(um)": "mean",
+                    "radius-std(um)": "std",
+                },
+            },
+        ):
+            refdf = pd.read_csv(reference_file)
+            standard_metrics = {}
+            for plot_key, refdf_colnames in reference_colnames.items():
+                standard_refdf = refdf.loc[
+                    :, [v for v in refdf_colnames.keys()]
+                ].rename(columns=refdf_colnames)
+                standard_metrics[plot_key] = standard_refdf
+            return standard_metrics
+
+        def add_reference_to_plot(ax, standard_df):
+            ax.plot(
+                standard_df["t"],
+                standard_df["mean"],
+                label="dataset",
+                color="black",
+                alpha=0.5,
+            )
+            ax.fill_between(
+                standard_df["t"],
+                standard_df["mean"] - standard_df["std"],
+                standard_df["mean"] + standard_df["std"],
+                alpha=0.2,
+                color="black",
+            )
+            ax.legend(loc="center left")
+
+        standard_reference_metrics = read_reference_metrics(reference_file)
+        for plot_key, standard_refdf in standard_reference_metrics.items():
+            if plot_key is "count":
+                add_reference_to_plot(self.ax_lin_count, standard_refdf)
+            elif plot_key is "radius":
+                add_reference_to_plot(self.ax_lin_radius, standard_refdf)
+            else:
+                raise ValueError(f"Plot key {plot_key} not recognized.")

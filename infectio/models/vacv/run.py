@@ -93,6 +93,10 @@ def run(opt):
             writer.writerow(frame_data)
 
     # Add reference metrics to the last plot and save it
+    if opt.reference_file:
+        print("Adding reference metrics.")
+        plot.add_reference_metrics(opt.reference_file)
+    plt.savefig(os.path.join(save_path, "plot_final.png"))
 
     print(f"Elapsed time: {time.perf_counter() - start_time:.3f}")
     if opt.run_gui:

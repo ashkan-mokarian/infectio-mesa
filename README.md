@@ -41,6 +41,9 @@ TBD
 
 # Notes
 
+* Inconsistency for Radius information; in std output, the radius to center of 
+infection is shown. In graph plots, the center to convex center is shown.
+
 * Default num_cells = 2750 number used in configs are based on the density of
 cells computed on a single image with pixel dimensions that could possibly be 
 wrong. So be cautious about its correctness. The calculations you can find at 
