@@ -13,7 +13,7 @@
 #SBATCH --cpus-per-task 2
 
 # 4GB of RAM per CPU:
-#SBATCH --mem-per-cpu=4000
+#SBATCH --mem-per-cpu=8000
 
 # jobname:
 #SBATCH -J infectio-param
