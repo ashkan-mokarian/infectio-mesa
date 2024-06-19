@@ -5,6 +5,7 @@ import sys
 import csv
 
 import configargparse
+from dotenv import load_dotenv
 import matplotlib.pyplot as plt
 
 sys.path.append(".")
@@ -109,7 +110,11 @@ def get_opts():
 
     p.add("-c", is_config_file=True, help="config file path")
 
-    p.add("--save_root", type=str, help="Parent directory of results path.")
+    p.add(
+        "--save_root",
+        type=str,
+        help="Path where results should be saved (relative to project root).",
+    )
     p.add("--save_name", type=str, help="Project save name. current date if not given")
     p.add("--run_gui", action="store_true", help="show plots.")
     p.add("--n_sim_steps", type=int)
@@ -137,22 +142,36 @@ def get_opts():
     p.add(
         "--reference_file",
         type=str,
-        help="path to reference file. Contains mean and std of number of infected cells and radius of plaque across different times.",
+        help="path to reference file. Contains mean and std of number of infected cells and radius of plaque across different times (relative to project root).",
     )
 
     options = p.parse_args()
     print(p.format_values())
+
+    load_dotenv()
+    PROJECT_PATH = os.getenv("PROJECT_PATH")
 
     if not options.save_root:
         options.save_root = os.path.abspath(
             os.path.join(default_config, "../../../../output")
         )
         print(f"save_root is empty. setting to: {options.save_root}")
+    else:
+        options.save_root = os.path.abspath(
+            os.path.join(PROJECT_PATH, options.save_root)
+        )
+
+    options.reference_file = (
+        os.path.abspath(os.path.join(PROJECT_PATH, options.reference_file))
+        if options.reference_file
+        else None
+    )
 
     return options
 
 
 if __name__ == "__main__":
     options = get_opts()
+    print(options)
     run(options)
     print("Finish!")

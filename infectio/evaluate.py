@@ -27,6 +27,9 @@ def bulk_evaluate(
         if target_folder.startswith("."):
             print("- folder starts with ., skipping folder: ", target_folder)
             continue
+        if not os.path.isdir(os.path.join(target_root, target_folder)):
+            print("- not a folder, skipping folder: ", target_folder)
+            continue
         if "metric.csv" not in os.listdir(os.path.join(target_root, target_folder)):
             print("- no metric.csv, skipping folder: ", target_folder)
             continue

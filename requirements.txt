@@ -2,3 +2,4 @@ matplotlib
 scipy
 mesa
 plotly
+python-dotenv
