@@ -3,6 +3,7 @@ import datetime
 import time
 import sys
 import csv
+import json
 
 import configargparse
 from dotenv import load_dotenv
@@ -24,6 +25,10 @@ def run(opt):
     plot_path = os.path.join(save_path, "plots")
     os.makedirs(plot_path)
     plot_fn = os.path.join(plot_path, "plot{}.png")
+
+    # Save parameters of the model from options
+    with open(os.path.join(save_path, "params.json"), "w") as f:
+        json.dump(vars(opt), f, indent=4)
 
     save_data = []
     save_metric_data = []
