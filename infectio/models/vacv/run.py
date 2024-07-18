@@ -46,12 +46,11 @@ def run(opt):
     plot = Matplot(model, State, state_style_dict)
 
     print(
-        "{:<10} {:<10} {:<10} {:<10} {:<10} {:<10}".format(
+        "{:<10} {:<10} {:<10} {:<10} {:<10}".format(
             "# Step",
             "t(hours)",
             "# inf",
-            "avg radius(um)",
-            "max radius(um)",
+            "area(um^2)",
             "rad vel(um/min)",
         )
     )
@@ -60,25 +59,35 @@ def run(opt):
         plot.update(t)
         plt.savefig(plot_fn.format(t))
         model.step()
-        mean_radius = model.reporters["radius2infcenter"].radii_mean[-1]
-        mean_radius *= opt.pixel_length
-        max_radius = model.reporters["radius2infcenter"].radii_max[-1]
-        max_radius *= opt.pixel_length
+        # Replacing radii metrics with area
+        # mean_radius = model.reporters["radius2infcenter"].radii_mean[-1]
+        # mean_radius *= opt.pixel_length
+        # max_radius = model.reporters["radius2infcenter"].radii_max[-1]
+        # max_radius *= opt.pixel_length
+        # area = model.reporters["plaque_area"].area[-1]
+        # area *= opt.pixel_length**2
+        area = model.reporters["plaque_area"].get_areas_in_world_units(
+            world_pixel_length=opt.pixel_length
+        )[-1]
+        # rad_velocity = model.reporters[
+        #     "radial_velocity_of_infected_cells"
+        # ].average_radial_velocity()
+        # rad_velocity *= opt.pixel_length / (
+        #     opt.time_per_step / 60
+        # )  # TODO: double check these numbers (gives um/min)
         rad_velocity = model.reporters[
             "radial_velocity_of_infected_cells"
-        ].average_radial_velocity()
-        rad_velocity *= opt.pixel_length / (
-            opt.time_per_step / 60
-        )  # TODO: double check these numbers (gives um/min)
+        ].get_average_radial_velocity_in_world_units(
+            world_pixel_length=opt.pixel_length,
+            mins_per_simstep=opt.time_per_step / 60,
+        )
         count_infected = len(model.reporters["state_lists"].state_lists[State.I])
         print("{:<10}".format(f"{t+1:03}/{opt.n_sim_steps}"), end="")
         print(
-            f"{t_in_hours:<10.2f}{count_infected:<10}{mean_radius:<10.2f}{max_radius:<10.2f}{rad_velocity:<10.2f}"
+            f"{t_in_hours:<10.2f}{count_infected:<10}{area:<10.2f}{rad_velocity:<10.2f}"
         )  # 3600 to change seconds to hours.
         save_data.append(model.save_step(t))
-        save_metric_data.append(
-            [t_in_hours, count_infected, mean_radius, max_radius, rad_velocity]
-        )
+        save_metric_data.append([t_in_hours, count_infected, area, rad_velocity])
         if opt.run_gui:
             plt.pause(0.000001)
 
@@ -92,9 +101,7 @@ def run(opt):
             writer.writerows(frame_data)
     with open(os.path.join(save_path, "metric.csv"), "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(
-            ["t", "Infected_Count", "Mean_Radius", "Max_Radius", "Rad_Velocity"]
-        )
+        writer.writerow(["t", "infected-count", "area(um2)", "radial-velocity(um/min)"])
         for frame_data in save_metric_data:
             writer.writerow(frame_data)
 

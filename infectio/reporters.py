@@ -3,6 +3,7 @@ Classes to obtain model metrics.
 """
 
 import numpy as np
+from scipy.spatial import ConvexHull
 
 
 # TODO: Add this as default to the model. Instead of using default mesa scheduler
@@ -70,6 +71,28 @@ class Radius:
         self._update_lists(radii.mean(), radii.std(), radii.min(), radii.max())
 
 
+class Area:
+    """ "Keeps track of the area of the Plaque.
+
+    Using Area as a better metric alternative to radius."""
+
+    def __init__(self) -> None:
+        self.area = []
+
+    def update(self, cell_pos_array):
+        if cell_pos_array is None or cell_pos_array.shape[0] < 3:
+            area = 0
+        else:
+            area = ConvexHull(cell_pos_array).volume
+        self.area.append(area)
+
+    def get_areas(self):
+        return self.area if self.area else [0]
+
+    def get_areas_in_world_units(self, world_pixel_length):
+        return [a * world_pixel_length**2 for a in self.get_areas()]
+
+
 class RadialVelocity:
     """Keeps track of the radial velocity of the infected cells.
 
@@ -111,3 +134,8 @@ class RadialVelocity:
             return np.nan
         else:
             return np.nanmean(rad_vels)
+
+    def get_average_radial_velocity_in_world_units(
+        self, world_pixel_length, mins_per_simstep
+    ):
+        return self.average_radial_velocity() * world_pixel_length / mins_per_simstep

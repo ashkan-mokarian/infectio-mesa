@@ -41,6 +41,11 @@ TBD
 
 # Notes
 
+* CHANGELOG 20.06.2023: change the three phenotype metrics to area, number, and radial velocity.
+I think radius is not very well defined, whether it is from infection center or
+from convex center, and which one, the average, min, max, etc. So better to use
+area which shows the territory of the plaque/virus.
+
 * Inconsistency for Radius information; in std output, the radius to center of 
 infection is shown. In graph plots, the center to convex center is shown.
 
