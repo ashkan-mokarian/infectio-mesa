@@ -42,12 +42,21 @@ def bulk_evaluate(
         )
         for colname, dist in zip(columns[1:], dists):
             row[colname] = dist
-        # TODO: Sum of un-normalized dists not very good. Maybe not normalizing
-        # for others makes sense, but not for sum.
-        row["Sum-dist"] = sum(dists)
+
         eval_results.append(row)
 
-    return pd.DataFrame(eval_results, index=None)
+    df = pd.DataFrame(eval_results, index=None)
+
+    # add normalized sum dist to df
+    dist_cols = [col for col in df.columns if col.endswith("-dist")]
+    max_values = {col: df[col].max() for col in dist_cols}
+    normalized_cols = {col: df[col] / max_val for col, max_val in max_values.items()}
+    df_normalized = pd.DataFrame(normalized_cols)
+    normalized_sum = df_normalized.sum(axis=1)
+    new_row_label = f"normalized-sum-dist({', '.join(map(str, max_values.values()))})"
+    df.loc[new_row_label] = normalized_sum
+
+    return df
 
 
 def evaluate_simulation_against_reference(
