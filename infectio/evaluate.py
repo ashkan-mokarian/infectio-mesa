@@ -42,12 +42,21 @@ def bulk_evaluate(
         )
         for colname, dist in zip(columns[1:], dists):
             row[colname] = dist
-        # TODO: Sum of un-normalized dists not very good. Maybe not normalizing
-        # for others makes sense, but not for sum.
-        row["Sum-dist"] = sum(dists)
+
         eval_results.append(row)
 
-    return pd.DataFrame(eval_results, index=None)
+    df = pd.DataFrame(eval_results, index=None)
+
+    # add normalized sum dist to df
+    dist_cols = [col for col in df.columns if col.endswith("-dist")]
+    max_values = {col: df[col].max() for col in dist_cols}
+    normalized_cols = {col: df[col] / max_val for col, max_val in max_values.items()}
+    df_normalized = pd.DataFrame(normalized_cols)
+    normalized_sum = df_normalized.sum(axis=1)
+    new_row_label = f"normalized-sum-dist({', '.join(map(str, max_values.values()))})"
+    df[new_row_label] = normalized_sum
+
+    return df
 
 
 def evaluate_simulation_against_reference(
@@ -126,9 +135,15 @@ def aligned_timeseries_point2distribution_distance(ref_mean, ref_std, target) ->
 def visualize_bulk_evaluation_results(eval_results: pd.DataFrame):
     df = replace_experiment_name_with_params(eval_results)
 
+    sum_dist_col_name = [
+        col for col in df.columns if col.startswith("normalized-sum-dist")
+    ][0]
+
     fig = go.Figure(
         data=go.Parcoords(
-            line=dict(color=df["Sum-dist"], colorscale="Blackbody", showscale=True),
+            line=dict(
+                color=df[sum_dist_col_name], colorscale="Blackbody", showscale=True
+            ),
             dimensions=[
                 dict(values=df[c], label=c, tickvals=df[c].unique())
                 for c in df.columns
