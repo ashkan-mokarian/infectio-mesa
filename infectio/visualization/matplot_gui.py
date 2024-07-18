@@ -14,8 +14,10 @@ class Matplot:
         self.ax_pos = self.fig.add_subplot(grid[:4, :4])
         self.ax_dif = self.fig.add_subplot(grid[:4, 4:])
         self.ax_colorbar = self.fig.add_subplot(grid[:4, -1], frameon=False)
-        self.ax_lin_radius = self.fig.add_subplot(grid[4, :])
-        self.ax_lin_radius.set_xticks([])
+        # self.ax_lin_radius = self.fig.add_subplot(grid[4, :])
+        # self.ax_lin_radius.set_xticks([])
+        self.ax_lin_area = self.fig.add_subplot(grid[4, :])
+        self.ax_lin_area.set_xticks([])
         self.ax_lin_radial_velocity = self.fig.add_subplot(grid[5, :])
         self.ax_lin_radial_velocity.set_xticks([])
         self.ax_lin_count = self.fig.add_subplot(grid[6, :])
@@ -39,11 +41,13 @@ class Matplot:
         self.steps = []
         self.num_lists = {k: [] for k in self.State}
 
+        # replacing radius with area
         # Using line plot to show radii mean, max, and min. To avoid keeping
         # the data for previous steps, you need to use animations in pyplot
-        self.radii_mean = []
-        self.radii_max = []
-        self.radii_min = []
+        # self.radii_mean = []
+        # self.radii_max = []
+        # self.radii_min = []
+        self.area = []
 
         # For radial velocity
         self.radial_velocity = []
@@ -56,7 +60,8 @@ class Matplot:
         if step is None:
             step = self.steps[-1] + 1 if self.steps else 0
         self.steps.append(step)
-        self.plot_lin_radius(state_lists[self.State.I])
+        # self.plot_lin_radius(state_lists[self.State.I])
+        self.plot_lin_area()
         self.plot_lin_radius_velocity()
         self.plot_lin_count(state_lists)
         self.plot_particle()
@@ -113,13 +118,31 @@ class Matplot:
             loc="center left",
         )
 
+    def plot_lin_area(self):
+        self.ax_lin_area.cla()
+        self.ax_lin_area.set_xticks([])
+        self.area.append(
+            self.model.reporters["plaque_area"].get_areas_in_world_units(
+                world_pixel_length=self.model.opt.pixel_length
+            )[-1]
+        )
+        self.ax_lin_area.plot(
+            [step * (self.model.opt.time_per_step / 3600) for step in self.steps],
+            self.area,
+            label="Area (um^2)",
+        )
+        self.ax_lin_area.legend(loc="center left")
+
     def plot_lin_radius_velocity(self):
         self.ax_lin_radial_velocity.cla()
         self.ax_lin_radial_velocity.set_xticks([])
         self.radial_velocity.append(
             self.model.reporters[
                 "radial_velocity_of_infected_cells"
-            ].average_radial_velocity()
+            ].get_average_radial_velocity_in_world_units(
+                world_pixel_length=self.model.opt.pixel_length,
+                mins_per_simstep=self.model.opt.time_per_step / 60,
+            )
         )
         self.ax_lin_radial_velocity.plot(
             [step * (self.model.opt.time_per_step / 3600) for step in self.steps],
@@ -177,10 +200,20 @@ class Matplot:
             reference_file,
             reference_colnames={
                 "count": {"t": "t", "inf-count-mean": "mean", "inf-count-std": "std"},
-                "radius": {
+                # "radius": {
+                #     "t": "t",
+                #     "radius-mean(um)": "mean",
+                #     "radius-std(um)": "std",
+                # },
+                "area": {
                     "t": "t",
-                    "radius-mean(um)": "mean",
-                    "radius-std(um)": "std",
+                    "area-mean(um2)": "mean",
+                    "area-std(um2)": "std",
+                },
+                "radial_velocity": {
+                    "t": "t",
+                    "radial-velocity-mean(um/min)": "mean",
+                    "radial-velocity-std(um/min)": "std",
                 },
             },
         ):
@@ -216,5 +249,9 @@ class Matplot:
                 add_reference_to_plot(self.ax_lin_count, standard_refdf)
             elif plot_key is "radius":
                 add_reference_to_plot(self.ax_lin_radius, standard_refdf)
+            elif plot_key is "area":
+                add_reference_to_plot(self.ax_lin_area, standard_refdf)
+            elif plot_key is "radial_velocity":
+                add_reference_to_plot(self.ax_lin_radial_velocity, standard_refdf)
             else:
                 raise ValueError(f"Plot key {plot_key} not recognized.")

@@ -2,7 +2,7 @@ import mesa
 import numpy as np
 
 from infectio.particle import Homogenous2dDiffusion
-from infectio.reporters import Radius, StateList, StatePos, RadialVelocity
+from infectio.reporters import StateList, StatePos, RadialVelocity, Area
 
 from cell import Cell, State
 
@@ -45,14 +45,16 @@ class Model(mesa.Model):
 
         state_lists = StateList(self, State)
         xypos = StatePos([State.I], state_lists)
-        radius2infcenter = Radius(center=np.array([width / 2, height / 2]))
+        # radius2infcenter = Radius(center=np.array([width / 2, height / 2]))
+        plaque_area = Area()
         radial_velocity_of_infected_cells = RadialVelocity(
             center=np.array([width / 2, height / 2]),
         )
         self.reporters = {
             "state_lists": state_lists,
             "xypos": xypos,
-            "radius2infcenter": radius2infcenter,
+            # "radius2infcenter": radius2infcenter,
+            "plaque_area": plaque_area,
             "radial_velocity_of_infected_cells": radial_velocity_of_infected_cells,
         }
 
@@ -80,9 +82,12 @@ class Model(mesa.Model):
         self.schedule.step()
         self.reporters["state_lists"].update()
         self.reporters["xypos"].update()
-        self.reporters["radius2infcenter"].update(
+        # self.reporters["radius2infcenter"].update(
+        #     cell_pos_array=self.reporters["xypos"].get_xy_np_pos(state=State.I)
+        # )
+        self.reporters["plaque_area"].update(
             cell_pos_array=self.reporters["xypos"].get_xy_np_pos(state=State.I)
-        )
+        ),
         self.reporters["radial_velocity_of_infected_cells"].update(
             cell_list=self.reporters["state_lists"].state_lists[State.I]
         )
