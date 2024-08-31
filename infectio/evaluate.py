@@ -18,11 +18,17 @@ def bulk_evaluate(
     ref_std_colnames,
     target_colnames,
     time_colname="t",
+    single_experiments=False,
 ) -> pd.DataFrame:
     refdf = pd.read_csv(ref_file)
     refdf.set_index(time_colname, inplace=True)
-    columns = ["target_folder"] + [s + "-dist" for s in target_colnames]
     eval_results = []
+
+    if single_experiments:
+        columns = ["target_folder"] + [s + "-dist" for s in target_colnames]
+    else:
+        columns = ["target_folder"] + [s + "-mean-dist" for s in target_colnames]
+
     for target_folder in os.listdir(target_root):
         if target_folder.startswith("."):
             print("- folder starts with ., skipping folder: ", target_folder)
@@ -30,16 +36,32 @@ def bulk_evaluate(
         if not os.path.isdir(os.path.join(target_root, target_folder)):
             print("- not a folder, skipping folder: ", target_folder)
             continue
-        if "metric.csv" not in os.listdir(os.path.join(target_root, target_folder)):
-            print("- no metric.csv, skipping folder: ", target_folder)
-            continue
+
         row = {}
         row["target_folder"] = target_folder
-        targetdf = pd.read_csv(os.path.join(target_root, target_folder, "metric.csv"))
-        targetdf.set_index(time_colname, inplace=True)
-        dists = evaluate_simulation_against_reference(
-            refdf, targetdf, ref_mean_colnames, ref_std_colnames, target_colnames
-        )
+        experiment_root = os.path.join(target_root, target_folder)
+
+        if single_experiments:
+            dists = evaluate_single_experiments(
+                experiment_root,
+                refdf,
+                ref_mean_colnames,
+                ref_std_colnames,
+                target_colnames,
+                time_colname,
+            )
+        else:
+            dists = evaluate_multiple_experiments(
+                experiment_root,
+                refdf,
+                ref_mean_colnames,
+                ref_std_colnames,
+                target_colnames,
+                time_colname,
+            )
+        if dists is None:
+            continue
+
         for colname, dist in zip(columns[1:], dists):
             row[colname] = dist
 
@@ -57,6 +79,52 @@ def bulk_evaluate(
     df[new_row_label] = normalized_sum
 
     return df
+
+
+def evaluate_multiple_experiments(
+    experiment_root,
+    refdf,
+    ref_mean_colnames,
+    ref_std_colnames,
+    target_colnames,
+    time_colname,
+):
+    # Report multiple criterias of selection, e.g. naive sum of dists, dist2dist
+    # distance such as KL or wasserstein, etc.
+    # Probably useful to aggregate metrics first but now for a quick result,
+    # just do multiple single experiment runs and sum over them
+    multiple_dists = []
+    for exp_path in os.listdir(experiment_root):
+        dists = evaluate_single_experiments(
+            os.path.join(experiment_root, exp_path),
+            refdf,
+            ref_mean_colnames,
+            ref_std_colnames,
+            target_colnames,
+            time_colname,
+        )
+        multiple_dists.append(dists)
+    multiple_dists = np.vstack(multiple_dists)
+    return np.mean(multiple_dists, axis=0).tolist()
+
+
+def evaluate_single_experiments(
+    experiment_root,
+    refdf,
+    ref_mean_colnames,
+    ref_std_colnames,
+    target_colnames,
+    time_colname,
+):
+    if "metric.csv" not in os.listdir(experiment_root):
+        print("- no metric.csv, skipping folder: ", experiment_root)
+        return None
+    targetdf = pd.read_csv(os.path.join(experiment_root, "metric.csv"))
+    targetdf.set_index(time_colname, inplace=True)
+    dists = evaluate_simulation_against_reference(
+        refdf, targetdf, ref_mean_colnames, ref_std_colnames, target_colnames
+    )
+    return dists
 
 
 def evaluate_simulation_against_reference(
@@ -187,6 +255,14 @@ def parse_args():
         help="path to simulation results where metric.csv can be found.",
     )
     parser.add_argument(
+        "--single_experiments",
+        type=bool,
+        default=False,
+        help="choose if each parameter choice has only one experiment in it, \
+        otherwise assumes multiple experiments for each set of parameters and \
+        uses dist2dist scores.",
+    )
+    parser.add_argument(
         "--tcol", nargs="+", type=str, help="column names of target metrics."
     )
     parser.add_argument(
@@ -201,15 +277,21 @@ def parse_args():
         type=str,
         help="column names of reference metric stds.",
     )
-    parser.add_argument("--timecol", type=str, help="column name of time.", default="t")
     parser.add_argument("--output", type=str, help="output save file.")
+    parser.add_argument("--timecol", type=str, help="column name of time.", default="t")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
     eval_results = bulk_evaluate(
-        args.reference, args.root, args.rmeancol, args.rstdcol, args.tcol
+        args.reference,
+        args.root,
+        args.rmeancol,
+        args.rstdcol,
+        args.tcol,
+        args.timecol,
+        args.single_experiments,
     )
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
     eval_results.to_csv(args.output)
