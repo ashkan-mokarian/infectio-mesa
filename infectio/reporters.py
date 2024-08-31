@@ -108,27 +108,30 @@ class RadialVelocity:
     def update(self, cell_list):
         for cell in cell_list:
             uid = cell.unique_id
-            pos = cell.pos
+            pos_relative_2_center = cell.pos - self.center
             if uid not in self.radial_velocity.keys():
                 self.radial_velocity[uid] = {
-                    "max_rad_velocity": -np.inf,
-                    "last_pos": pos,
+                    "max_rad_velocity": np.nan,
+                    "last_rho": np.linalg.norm(pos_relative_2_center),
                 }
             else:
-                last_pos = self.radial_velocity[uid]["last_pos"]
-                rhat = (last_pos - self.center) / np.linalg.norm(last_pos - self.center)
-                radial_velocity = np.dot(rhat, pos - last_pos)
-                self.radial_velocity[uid]["max_rad_velocity"] = max(
-                    radial_velocity, self.radial_velocity[uid]["max_rad_velocity"]
+                rho = np.linalg.norm(pos_relative_2_center)
+                max_rad_vel = self.radial_velocity[uid]["max_rad_velocity"]
+                new_rad_vel = rho - self.radial_velocity[uid]["last_rho"]
+                self.radial_velocity[uid]["max_rad_velocity"] = np.nanmax(
+                    [max_rad_vel, new_rad_vel]
                 )
+                self.radial_velocity[uid]["last_rho"] = rho
 
     def average_radial_velocity(self):
         """Average radial velocity of all tracked cells computed based on
-        backward difference of simulation steps (normalize accordingly when using.)"""
+        backward difference of simulation steps (normalize accordingly when
+        using or use the method get_average_radial_velocity_in_world_units.)
+        """
         rad_vels = [
             self.radial_velocity[uid]["max_rad_velocity"]
             for uid in self.radial_velocity.keys()
-            if self.radial_velocity[uid]["max_rad_velocity"] > -np.inf
+            if self.radial_velocity[uid]["max_rad_velocity"] is not np.nan
         ]
         if len(rad_vels) == 0:
             return np.nan

@@ -245,13 +245,13 @@ class Matplot:
 
         standard_reference_metrics = read_reference_metrics(reference_file)
         for plot_key, standard_refdf in standard_reference_metrics.items():
-            if plot_key is "count":
+            if plot_key == "count":
                 add_reference_to_plot(self.ax_lin_count, standard_refdf)
-            elif plot_key is "radius":
+            elif plot_key == "radius":
                 add_reference_to_plot(self.ax_lin_radius, standard_refdf)
-            elif plot_key is "area":
+            elif plot_key == "area":
                 add_reference_to_plot(self.ax_lin_area, standard_refdf)
-            elif plot_key is "radial_velocity":
+            elif plot_key == "radial_velocity":
                 add_reference_to_plot(self.ax_lin_radial_velocity, standard_refdf)
             else:
                 raise ValueError(f"Plot key {plot_key} not recognized.")
