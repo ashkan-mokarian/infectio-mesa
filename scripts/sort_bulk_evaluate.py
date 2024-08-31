@@ -1,8 +1,11 @@
 import pandas as pd
 import os
+from dotenv import load_dotenv
 
 # Replace 'your_file.csv' with the path to your CSV file
-root_path = "/Users/ashkanhzdr/workspace/infectio-mesa/output/dVGFdF11"
+load_dotenv()
+PROJECT_PATH = os.getenv("PROJECT_PATH")
+root_path = os.path.join(PROJECT_PATH, "/output/dVGFdF11")
 file_path = os.path.join(root_path, "1907/0_evaluation/bulk_evaluate.csv")
 save_path = os.path.join(root_path, "1907/0_evaluation/top")
 os.makedirs(save_path, exist_ok=True)
