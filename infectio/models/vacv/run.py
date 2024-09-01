@@ -57,7 +57,8 @@ def run(opt):
     for t in range(opt.n_sim_steps):
         t_in_hours = t * (opt.time_per_step / 3600)
         plot.update(t)
-        plt.savefig(plot_fn.format(t))
+        if opt.savesnapshots:
+            plt.savefig(plot_fn.format(t))
         model.step()
         # Replacing radii metrics with area
         # mean_radius = model.reporters["radius2infcenter"].radii_mean[-1]
@@ -129,6 +130,11 @@ def get_opts():
     )
     p.add("--save_name", type=str, help="Project save name. current date if not given")
     p.add("--run_gui", action="store_true", help="show plots.")
+    p.add(
+        "--savesnapshots",
+        action="store_true",
+        help="whether to save graphs at every step or not.",
+    )
     p.add("--n_sim_steps", type=int)
     p.add(
         "--time_per_step",
