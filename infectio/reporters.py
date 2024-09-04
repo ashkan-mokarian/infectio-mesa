@@ -111,17 +111,18 @@ class RadialVelocity:
             pos_relative_2_center = cell.pos - self.center
             if uid not in self.radial_velocity.keys():
                 self.radial_velocity[uid] = {
-                    "max_rad_velocity": np.nan,
-                    "last_rho": np.linalg.norm(pos_relative_2_center),
+                    "max_rad_velocity": 0,
+                    "rho0": np.linalg.norm(pos_relative_2_center),
                 }
             else:
                 rho = np.linalg.norm(pos_relative_2_center)
                 max_rad_vel = self.radial_velocity[uid]["max_rad_velocity"]
-                new_rad_vel = rho - self.radial_velocity[uid]["last_rho"]
-                self.radial_velocity[uid]["max_rad_velocity"] = np.nanmax(
-                    [max_rad_vel, new_rad_vel]
+                cur_rad_vel = (
+                    rho - self.radial_velocity[uid]["rho0"]
+                ) / cell.time_infected
+                self.radial_velocity[uid]["max_rad_velocity"] = max(
+                    [max_rad_vel, cur_rad_vel]
                 )
-                self.radial_velocity[uid]["last_rho"] = rho
 
     def average_radial_velocity(self):
         """Average radial velocity of all tracked cells computed based on
