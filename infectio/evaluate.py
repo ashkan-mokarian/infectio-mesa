@@ -22,7 +22,8 @@ def bulk_evaluate(
 ) -> pd.DataFrame:
     refdf = pd.read_csv(ref_file)
     refdf.set_index(time_colname, inplace=True)
-    eval_results = []
+    dist_eval_results = []
+    endpoint_eval_results = []
 
     if single_experiments:
         columns = ["target_folder"] + [s + "-dist" for s in target_colnames]
@@ -37,12 +38,14 @@ def bulk_evaluate(
             print("- not a folder, skipping folder: ", target_folder)
             continue
 
-        row = {}
-        row["target_folder"] = target_folder
+        dist_row = {}
+        dist_row["target_folder"] = target_folder
+        endpoint_row = {}
+        endpoint_row["target_folder"] = target_folder
         experiment_root = os.path.join(target_root, target_folder)
 
         if single_experiments:
-            dists = evaluate_single_experiments(
+            dist_dists, endpoint_dists = evaluate_single_experiments(
                 experiment_root,
                 refdf,
                 ref_mean_colnames,
@@ -51,7 +54,7 @@ def bulk_evaluate(
                 time_colname,
             )
         else:
-            dists = evaluate_multiple_experiments(
+            dist_dists, endpoint_dists = evaluate_multiple_experiments(
                 experiment_root,
                 refdf,
                 ref_mean_colnames,
@@ -59,17 +62,26 @@ def bulk_evaluate(
                 target_colnames,
                 time_colname,
             )
-        if dists is None:
+        if dist_dists is None:
             continue
 
-        for colname, dist in zip(columns[1:], dists):
-            row[colname] = dist
+        for colname, dist in zip(columns[1:], dist_dists):
+            dist_row[colname] = dist
+        for colname, dist in zip(columns[1:], endpoint_dists):
+            endpoint_row[colname] = dist
 
-        eval_results.append(row)
+        dist_eval_results.append(dist_row)
+        endpoint_eval_results.append(endpoint_row)
 
-    df = pd.DataFrame(eval_results, index=None)
+    dist_df = pd.DataFrame(dist_eval_results, index=None)
+    add_normalized_sum_to_df(dist_df)
+    endpoint_df = pd.DataFrame(endpoint_eval_results, index=None)
+    add_normalized_sum_to_df(endpoint_df)
 
-    # add normalized sum dist to df
+    return dist_df, endpoint_df
+
+
+def add_normalized_sum_to_df(df):
     dist_cols = [col for col in df.columns if col.endswith("-dist")]
     max_values = {col: df[col].max() for col in dist_cols}
     normalized_cols = {col: df[col] / max_val for col, max_val in max_values.items()}
@@ -77,8 +89,6 @@ def bulk_evaluate(
     normalized_sum = df_normalized.sum(axis=1)
     new_row_label = f"normalized-sum-dist({', '.join(map(str, max_values.values()))})"
     df[new_row_label] = normalized_sum
-
-    return df
 
 
 def evaluate_multiple_experiments(
@@ -93,9 +103,10 @@ def evaluate_multiple_experiments(
     # distance such as KL or wasserstein, etc.
     # Probably useful to aggregate metrics first but now for a quick result,
     # just do multiple single experiment runs and sum over them
-    multiple_dists = []
+    multiple_dist_dists = []
+    multiple_endpoint_dists = []
     for exp_path in os.listdir(experiment_root):
-        dists = evaluate_single_experiments(
+        dist_dists, endpoint_dists = evaluate_single_experiments(
             os.path.join(experiment_root, exp_path),
             refdf,
             ref_mean_colnames,
@@ -103,9 +114,14 @@ def evaluate_multiple_experiments(
             target_colnames,
             time_colname,
         )
-        multiple_dists.append(dists)
-    multiple_dists = np.vstack(multiple_dists)
-    return np.mean(multiple_dists, axis=0).tolist()
+        multiple_dist_dists.append(dist_dists)
+        multiple_endpoint_dists.append(endpoint_dists)
+    multiple_dist_dists = np.vstack(multiple_dist_dists)
+    multiple_endpoint_dists = np.vstack(multiple_endpoint_dists)
+    return (
+        np.mean(multiple_dist_dists, axis=0).tolist(),
+        np.mean(multiple_endpoint_dists, axis=0).tolist(),
+    )
 
 
 def evaluate_single_experiments(
@@ -121,10 +137,10 @@ def evaluate_single_experiments(
         return None
     targetdf = pd.read_csv(os.path.join(experiment_root, "metric.csv"))
     targetdf.set_index(time_colname, inplace=True)
-    dists = evaluate_simulation_against_reference(
+    dist_dists, endpoint_dists = evaluate_simulation_against_reference(
         refdf, targetdf, ref_mean_colnames, ref_std_colnames, target_colnames
     )
-    return dists
+    return dist_dists, endpoint_dists
 
 
 def evaluate_simulation_against_reference(
@@ -133,7 +149,7 @@ def evaluate_simulation_against_reference(
     ref_mean_colnames: Union[str, List[str]],
     ref_std_colnames: Union[str, List[str]],
     target_colnames: Union[str, List[str]],
-) -> List[float]:
+):
     """Computes distance measures of a time-series to distribution for a list of metrics.
 
     Args:
@@ -157,7 +173,8 @@ def evaluate_simulation_against_reference(
         len(ref_mean_colnames) == len(ref_std_colnames) == len(target_colnames)
     ), "Length of the three colname lists must be the same."
 
-    distances = []
+    dist_distances = []
+    endpoint_distances = []
     for ref_metric_mean, ref_metric_std, target_metric in zip(
         ref_mean_colnames, ref_std_colnames, target_colnames
     ):
@@ -167,13 +184,13 @@ def evaluate_simulation_against_reference(
         standard_targetdf = targetdf.loc[:, [target_metric]].rename(
             columns={target_metric: "value"}
         )
-        distances.append(
-            timeseries_point2distribution_distance(standard_refdf, standard_targetdf)
-        )
-    return distances
+        distances = point2distribution_distance(standard_refdf, standard_targetdf)
+        dist_distances.append(distances[0])
+        endpoint_distances.append(distances[1])
+    return dist_distances, endpoint_distances
 
 
-def timeseries_point2distribution_distance(refdf, targetdf):
+def point2distribution_distance(refdf, targetdf):
     """computes distance measure of a time-series to distribution.
 
     Args:
@@ -181,16 +198,24 @@ def timeseries_point2distribution_distance(refdf, targetdf):
         targetdf (pd.DataFrame): Target values vs time index.
 
     Returns:
-        float: distance measure.
+        float: distance measure of comparing timeseries vs timeseries dist.
+        float: distance measure of comparing last timepoint of timeseries vs dist.
     """
     # First align the two data frames based on time_colname
     aligned_df = pd.merge_asof(refdf, targetdf, left_index=True, right_index=True)
 
-    return aligned_timeseries_point2distribution_distance(
-        aligned_df["mean"],
-        aligned_df["std"],
-        aligned_df["value"],
+    dist_distance = aligned_timeseries_point2distribution_distance(
+        aligned_df["mean"], aligned_df["std"], aligned_df["value"]
     )
+    endpoint_distance = aligned_point2distribution_distance(
+        aligned_df["mean"], aligned_df["std"], aligned_df["value"]
+    )
+    return dist_distance, endpoint_distance
+
+
+def aligned_point2distribution_distance(ref_mean, ref_std, target) -> float:
+    # this only compares the last frame
+    return np.abs(target.iloc[-1] - ref_mean.iloc[-1]) / ref_std.iloc[-1]
 
 
 def aligned_timeseries_point2distribution_distance(ref_mean, ref_std, target) -> float:
@@ -284,7 +309,7 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    eval_results = bulk_evaluate(
+    dist_eval_results, endpoint_eval_results = bulk_evaluate(
         args.reference,
         args.root,
         args.rmeancol,
@@ -294,21 +319,33 @@ if __name__ == "__main__":
         args.single_experiments,
     )
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
-    eval_results.to_csv(args.output)
+    dist_eval_results.to_csv(args.output)
     print("-- Evaluation results saved to: ", args.output)
-    for colname in eval_results.columns:
+    endpoint_output = args.output.replace(".csv", "_endpoint.csv")
+    endpoint_eval_results.to_csv(endpoint_output)
+    print("-- and                        : ", endpoint_output)
+    for colname in dist_eval_results.columns:
         if "-dist" in colname:
             print(f"-- Top experiments based on: {colname}")
-            print(colname, eval_results[colname].describe())
-            print(eval_results.sort_values(colname, ascending=True).head())
+            print(colname, dist_eval_results[colname].describe())
+            print(dist_eval_results.sort_values(colname, ascending=True).head())
 
-    fig = visualize_bulk_evaluation_results(eval_results)
+    dist_fig = visualize_bulk_evaluation_results(dist_eval_results)
 
     from plotly.offline import plot
 
     plot(
-        fig,
+        dist_fig,
         filename=os.path.join(
-            os.path.dirname(args.output), "bulk_eval_parallel_coordinate_plotly.html"
+            os.path.dirname(args.output),
+            "dist_bulk_eval_parallel_coordinate_plotly.html",
+        ),
+    )
+    endpoint_fig = visualize_bulk_evaluation_results(endpoint_eval_results)
+    plot(
+        endpoint_fig,
+        filename=os.path.join(
+            os.path.dirname(args.output),
+            "endpoint_bulk_eval_parallel_coordinate_plotly.html",
         ),
     )
