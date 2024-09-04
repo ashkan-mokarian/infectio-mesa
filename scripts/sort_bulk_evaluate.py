@@ -7,10 +7,9 @@ load_dotenv()
 PROJECT_PATH = os.getenv("PROJECT_PATH")
 root_path = os.path.join(PROJECT_PATH, "output/dVGFdF11")
 file_path = os.path.join(
-    root_path, "multiple_experiments/0_evaluation/bulk_evaluate.csv"
+    root_path, "multiple_experiment/0_evaluation/bulk_evaluate.csv"
 )
 save_path = os.path.join(root_path, "multiple_experiments/0_evaluation/top")
-os.makedirs(save_path, exist_ok=True)
 
 # Load the CSV file into a DataFrame
 df = pd.read_csv(file_path)
@@ -28,7 +27,9 @@ for col in dist_cols:
 
     # copy the folders to a new location
     tops = df_sorted.head(5)["target_folder"].tolist()
+    top_root = os.path.join(save_path, col[:20].replace("(", "-").replace(")", "-"))
+    os.makedirs(top_root, exist_ok=True)
     for top in tops:
         src = os.path.join(root_path, top)
-        dst = os.path.join(save_path, top)
+        dst = os.path.join(top_root, top)
         os.system(f"cp -r {src} {dst}")
