@@ -9,251 +9,297 @@ import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
 import os
+from scipy import stats
+
+# TODO: change these to one list, with difference being adding -mean and -std
+# to the end whenever you change the reference datasets and recompute them again
+# Also change experiment colnames to be the same as the other two -> infected to inf
+target_colnames_mean = [
+    "inf-count-mean",
+    "area-mean(um2)",
+    "radial-velocity-mean(um/min)",
+]
+target_colnames_std = ["inf-count-std", "area-std(um2)", "radial-velocity-std(um/min)"]
+experiment_colnames = ["infected-count", "area(um2)", "radial-velocity(um/min)"]
+time_colname = "t"
 
 
-def bulk_evaluate(
-    ref_file,
-    target_root,
-    ref_mean_colnames,
-    ref_std_colnames,
-    target_colnames,
-    time_colname="t",
-    single_experiments=False,
+def evaluate_experiments(
+    experiments_root,
+    target_dataset_csv,
+    target_N,  # Number of measured points of the reference dataset used for Corrected standardard deviation
 ) -> pd.DataFrame:
-    refdf = pd.read_csv(ref_file)
-    refdf.set_index(time_colname, inplace=True)
-    dist_eval_results = []
-    endpoint_eval_results = []
+    target_df = pd.read_csv(target_dataset_csv)
+    target_df.set_index(time_colname, inplace=True)
+    eval_results = []
+    for exp_folder in os.listdir(experiments_root):
+        if exp_folder.startswith("."):
+            print("- folder starts with ., skipping folder: ", exp_folder)
+            continue
+        exp_path = os.path.join(experiments_root, exp_folder)
+        if not os.path.isdir(exp_path):
+            print("- not a folder, skipping folder: ", exp_path)
+            continue
 
-    if single_experiments:
-        columns = ["target_folder"] + [s + "-dist" for s in target_colnames]
+        row = {}
+        row["experiment_name"] = exp_folder
+
+        experiment_metriccsv_paths = get_metric_paths_for_experiment(exp_path)
+        if len(experiment_metriccsv_paths) == 0:
+            print("- no metric csvs found for ", exp_folder)
+            continue
+
+        # Add evaluation scores here
+        # 1. zscore = (val-mean)/std (summed for time-series)
+        # 2. corrected xi2 score (described in here: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10617697/#pone.0289619.s001)
+
+        # infected count
+        z, zlast = evaluate_zscore(
+            target_df,
+            target_colnames_mean[0],
+            target_colnames_std[0],
+            experiment_metriccsv_paths,
+            experiment_colnames[0],
+            also_return_only_last_frame=True,
+        )
+        row["infected-count-zscore"] = z
+        row["infected-count-zscore-mean"] = sum(z) / len(z)
+        row["infected-count-lastframe-zscore"] = zlast
+        row["infected-count-lastframe-zscore-mean"] = sum(zlast) / len(zlast)
+
+        xi2, xi2last = evaluate_corrected_xi2_score(
+            target_df,
+            target_colnames_mean[0],
+            target_colnames_std[0],
+            experiment_metriccsv_paths,
+            experiment_colnames[0],
+            target_N,
+            also_return_only_last_frame=True,
+        )
+        row["infected-count-corxi2-pval"] = xi2
+        row["infected-count-lastframe-corxi2-pval"] = xi2last
+
+        # area
+        z, zlast = evaluate_zscore(
+            target_df,
+            target_colnames_mean[1],
+            target_colnames_std[1],
+            experiment_metriccsv_paths,
+            experiment_colnames[1],
+            also_return_only_last_frame=True,
+        )
+        row["area-zscore"] = z
+        row["area-zscore-mean"] = sum(z) / len(z)
+        row["area-lastframe-zscore"] = zlast
+        row["area-lastframe-zscore-mean"] = sum(zlast) / len(zlast)
+
+        xi2, xi2last = evaluate_corrected_xi2_score(
+            target_df,
+            target_colnames_mean[1],
+            target_colnames_std[1],
+            experiment_metriccsv_paths,
+            experiment_colnames[1],
+            target_N,
+            also_return_only_last_frame=True,
+        )
+        row["area-corxi2-pval"] = xi2
+        row["area-lastframe-corxi2-pval"] = xi2last
+
+        # radial velocity
+        z, zlast = evaluate_zscore(
+            target_df,
+            target_colnames_mean[2],
+            target_colnames_std[2],
+            experiment_metriccsv_paths,
+            experiment_colnames[2],
+            also_return_only_last_frame=True,
+        )
+        row["radial-velocity-zscore"] = z
+        row["radial-velocity-zscore-mean"] = sum(z) / len(z)
+        row["radial-velocity-lastframe-zscore"] = zlast
+        row["radial-velocity-lastframe-zscore-mean"] = sum(zlast) / len(zlast)
+
+        xi2, xi2last = evaluate_corrected_xi2_score(
+            target_df,
+            target_colnames_mean[2],
+            target_colnames_std[2],
+            experiment_metriccsv_paths,
+            experiment_colnames[2],
+            target_N,
+            also_return_only_last_frame=True,
+        )
+        row["radial-velocity-corxi2-pval"] = xi2
+        row["radial-velocity-lastframe-corxi2-pval"] = xi2last
+
+        eval_results.append(row)
+
+    eval_df = pd.DataFrame(eval_results, index=None)
+
+    # Add sum of the scores
+    add_normalized_sum_to_df(
+        eval_df,
+        new_colname="zscores_normalized_sum",
+        colnames_to_sum=[
+            "infected-count-zscore-mean",
+            "area-zscore-mean",
+            "radial-velocity-zscore-mean",
+        ],
+    )
+    add_normalized_sum_to_df(
+        eval_df,
+        new_colname="zscores_lastframe_normalized_sum",
+        colnames_to_sum=[
+            "infected-count-lastframe-zscore-mean",
+            "area-lastframe-zscore-mean",
+            "radial-velocity-lastframe-zscore-mean",
+        ],
+    )
+    return eval_df
+
+
+def get_metric_paths_for_experiment(exp_path):
+    metric_paths = []
+    for root, dirs, files in os.walk(exp_path):
+        if "metric.csv" in files:
+            metric_paths.append(os.path.join(root, "metric.csv"))
+    return metric_paths
+
+
+def evaluate_zscore(
+    target_df,
+    target_df_mean_colname,
+    target_df_std_colname,
+    metriccsv_paths,
+    exp_colname,
+    also_return_only_last_frame=True,
+):
+    zscores = []
+    zscores_only_last_frame = []
+    for csv in metriccsv_paths:
+        exp_df = pd.read_csv(csv)
+        exp_df.set_index(time_colname, inplace=True)
+        aligned_df = pd.merge(
+            exp_df, target_df, left_index=True, right_index=True, how="inner"
+        )
+        aligned_df.dropna()
+        zscore_all = (
+            aligned_df[exp_colname] - aligned_df[target_df_mean_colname]
+        ).abs() / aligned_df[target_df_std_colname]
+        zscores.append(zscore_all.sum())
+        if also_return_only_last_frame:
+            zscores_only_last_frame.append(zscore_all.iloc[-1])
+    if also_return_only_last_frame:
+        return zscores, zscores_only_last_frame
     else:
-        columns = ["target_folder"] + [s + "-mean-dist" for s in target_colnames]
-
-    for target_folder in os.listdir(target_root):
-        if target_folder.startswith("."):
-            print("- folder starts with ., skipping folder: ", target_folder)
-            continue
-        if not os.path.isdir(os.path.join(target_root, target_folder)):
-            print("- not a folder, skipping folder: ", target_folder)
-            continue
-
-        dist_row = {}
-        dist_row["target_folder"] = target_folder
-        endpoint_row = {}
-        endpoint_row["target_folder"] = target_folder
-        experiment_root = os.path.join(target_root, target_folder)
-
-        if single_experiments:
-            dist_dists, endpoint_dists = evaluate_single_experiments(
-                experiment_root,
-                refdf,
-                ref_mean_colnames,
-                ref_std_colnames,
-                target_colnames,
-                time_colname,
-            )
-        else:
-            dist_dists, endpoint_dists = evaluate_multiple_experiments(
-                experiment_root,
-                refdf,
-                ref_mean_colnames,
-                ref_std_colnames,
-                target_colnames,
-                time_colname,
-            )
-        if dist_dists is None:
-            continue
-
-        for colname, dist in zip(columns[1:], dist_dists):
-            dist_row[colname] = dist
-        for colname, dist in zip(columns[1:], endpoint_dists):
-            endpoint_row[colname] = dist
-
-        dist_eval_results.append(dist_row)
-        endpoint_eval_results.append(endpoint_row)
-
-    dist_df = pd.DataFrame(dist_eval_results, index=None)
-    add_normalized_sum_to_df(dist_df)
-    endpoint_df = pd.DataFrame(endpoint_eval_results, index=None)
-    add_normalized_sum_to_df(endpoint_df)
-
-    return dist_df, endpoint_df
+        return zscores
 
 
-def add_normalized_sum_to_df(df):
-    dist_cols = [col for col in df.columns if col.endswith("-dist")]
-    max_values = {col: df[col].max() for col in dist_cols}
+def evaluate_corrected_xi2_score(
+    target_df,
+    target_df_mean_colname,
+    target_df_std_colname,
+    metriccsv_paths,
+    exp_colname,
+    target_N,
+    also_return_only_last_frame=True,
+):
+    df_list = []
+    exp_N = len(metriccsv_paths)
+    for csv in metriccsv_paths:
+        df = pd.read_csv(csv, index_col=time_colname)
+        df_list.append(df[exp_colname])
+    concatenated_df = pd.concat(df_list, axis=1)
+    mean_df = concatenated_df.mean(axis=1)
+    std_df = concatenated_df.std(axis=1)
+    exp_df = pd.DataFrame({"mean": mean_df, "std": std_df})
+    exp_df.index.name = time_colname
+    # exp_df.set_index(time_colname, inplace=True)
+    target_df = target_df[[target_df_mean_colname, target_df_std_colname]]
+    aligned_df = pd.merge(
+        exp_df, target_df, left_index=True, right_index=True, how="inner"
+    )
+    aligned_df.dropna()
+    aligned_df["corrected_std_exp"] = aligned_df["std"] / np.sqrt(exp_N)
+    aligned_df["corrected_std_target"] = aligned_df[target_df_std_colname] / np.sqrt(
+        target_N
+    )
+    aligned_df["abs_mean_diff"] = np.abs(
+        aligned_df["mean"] - aligned_df[target_df_mean_colname]
+    )
+    aligned_df["std_diff"] = np.sqrt(
+        (aligned_df["corrected_std_exp"] ** 2)
+        + (aligned_df["corrected_std_target"] ** 2)
+    )
+    aligned_df["t-value"] = aligned_df["abs_mean_diff"] / aligned_df["std_diff"]
+    N_small = exp_N if exp_N < target_N else target_N
+    dF = 2 * N_small - 2
+
+    aligned_df["probs"] = 2 * (
+        1 - stats.t.cdf(aligned_df["t-value"], dF)
+    )  # survivala function 1-cdf for t-distribution multiplied by two for two tailed computation
+
+    aligned_df["corrected_xi2"] = stats.chi2.ppf(1 - aligned_df["probs"], 1)
+    lastframe_value = aligned_df.iloc[-1][
+        "probs"
+    ]  # returning the probability value p-value
+
+    sum_xi2 = aligned_df["corrected_xi2"].sum()  # T3
+    num_timepoints = len(aligned_df)
+    right_tail_probability_of_all_timepoints = 1 - stats.chi2.cdf(
+        sum_xi2, num_timepoints
+    )  # this corresponds to T4
+    if also_return_only_last_frame:
+        return right_tail_probability_of_all_timepoints, lastframe_value
+    else:
+        return right_tail_probability_of_all_timepoints
+
+
+def add_normalized_sum_to_df(df, new_colname, colnames_to_sum):
+    assert all([col in df.columns for col in colnames_to_sum])
+    max_values = {col: df[col].max() for col in colnames_to_sum}
     normalized_cols = {col: df[col] / max_val for col, max_val in max_values.items()}
     df_normalized = pd.DataFrame(normalized_cols)
     normalized_sum = df_normalized.sum(axis=1)
-    new_row_label = f"normalized-sum-dist({', '.join(map(str, max_values.values()))})"
-    df[new_row_label] = normalized_sum
-
-
-def evaluate_multiple_experiments(
-    experiment_root,
-    refdf,
-    ref_mean_colnames,
-    ref_std_colnames,
-    target_colnames,
-    time_colname,
-):
-    # Report multiple criterias of selection, e.g. naive sum of dists, dist2dist
-    # distance such as KL or wasserstein, etc.
-    # Probably useful to aggregate metrics first but now for a quick result,
-    # just do multiple single experiment runs and sum over them
-    multiple_dist_dists = []
-    multiple_endpoint_dists = []
-    for exp_path in os.listdir(experiment_root):
-        dist_dists, endpoint_dists = evaluate_single_experiments(
-            os.path.join(experiment_root, exp_path),
-            refdf,
-            ref_mean_colnames,
-            ref_std_colnames,
-            target_colnames,
-            time_colname,
-        )
-        multiple_dist_dists.append(dist_dists)
-        multiple_endpoint_dists.append(endpoint_dists)
-    multiple_dist_dists = np.vstack(multiple_dist_dists)
-    multiple_endpoint_dists = np.vstack(multiple_endpoint_dists)
-    return (
-        np.mean(multiple_dist_dists, axis=0).tolist(),
-        np.mean(multiple_endpoint_dists, axis=0).tolist(),
-    )
-
-
-def evaluate_single_experiments(
-    experiment_root,
-    refdf,
-    ref_mean_colnames,
-    ref_std_colnames,
-    target_colnames,
-    time_colname,
-):
-    if "metric.csv" not in os.listdir(experiment_root):
-        print("- no metric.csv, skipping folder: ", experiment_root)
-        return None
-    targetdf = pd.read_csv(os.path.join(experiment_root, "metric.csv"))
-    targetdf.set_index(time_colname, inplace=True)
-    dist_dists, endpoint_dists = evaluate_simulation_against_reference(
-        refdf, targetdf, ref_mean_colnames, ref_std_colnames, target_colnames
-    )
-    return dist_dists, endpoint_dists
-
-
-def evaluate_simulation_against_reference(
-    refdf: pd.DataFrame,
-    targetdf: pd.DataFrame,
-    ref_mean_colnames: Union[str, List[str]],
-    ref_std_colnames: Union[str, List[str]],
-    target_colnames: Union[str, List[str]],
-):
-    """Computes distance measures of a time-series to distribution for a list of metrics.
-
-    Args:
-        refdf (pd.DataFrame): Reference DataFrame containing mean and std values of time-series distributions.
-        targetdf (pd.DataFrame): Dataframe containing the simulation results.
-        ref_mean_colname (Union[str, List[str]]): Column names of means of reference timeseries dist.
-        ref_std_colname (Union[str, List[str]]): Column names of stds of reference timeseries dist.
-        target_colname (Union[str, List[str]]): Column name of the target metric.
-
-    Returns:
-        List[float]: distance measures of each metric.
-    """
-
-    def _to_list(x):
-        return x if isinstance(x, list) else [x]
-
-    ref_mean_colnames = _to_list(ref_mean_colnames)
-    ref_std_colnames = _to_list(ref_std_colnames)
-    target_colnames = _to_list(target_colnames)
-    assert (
-        len(ref_mean_colnames) == len(ref_std_colnames) == len(target_colnames)
-    ), "Length of the three colname lists must be the same."
-
-    dist_distances = []
-    endpoint_distances = []
-    for ref_metric_mean, ref_metric_std, target_metric in zip(
-        ref_mean_colnames, ref_std_colnames, target_colnames
-    ):
-        standard_refdf = refdf.loc[:, [ref_metric_mean, ref_metric_std]].rename(
-            columns={ref_metric_mean: "mean", ref_metric_std: "std"}
-        )
-        standard_targetdf = targetdf.loc[:, [target_metric]].rename(
-            columns={target_metric: "value"}
-        )
-        distances = point2distribution_distance(standard_refdf, standard_targetdf)
-        dist_distances.append(distances[0])
-        endpoint_distances.append(distances[1])
-    return dist_distances, endpoint_distances
-
-
-def point2distribution_distance(refdf, targetdf):
-    """computes distance measure of a time-series to distribution.
-
-    Args:
-        refdf (pd.DataFrame): Reference DataFrame with mean and std columns vs time index.
-        targetdf (pd.DataFrame): Target values vs time index.
-
-    Returns:
-        float: distance measure of comparing timeseries vs timeseries dist.
-        float: distance measure of comparing last timepoint of timeseries vs dist.
-    """
-    # First align the two data frames based on time_colname
-    aligned_df = pd.merge_asof(refdf, targetdf, left_index=True, right_index=True)
-
-    dist_distance = aligned_timeseries_point2distribution_distance(
-        aligned_df["mean"], aligned_df["std"], aligned_df["value"]
-    )
-    endpoint_distance = aligned_point2distribution_distance(
-        aligned_df["mean"], aligned_df["std"], aligned_df["value"]
-    )
-    return dist_distance, endpoint_distance
-
-
-def aligned_point2distribution_distance(ref_mean, ref_std, target) -> float:
-    # this only compares the last frame
-    return np.abs(target.iloc[-1] - ref_mean.iloc[-1]) / ref_std.iloc[-1]
-
-
-def aligned_timeseries_point2distribution_distance(ref_mean, ref_std, target) -> float:
-    assert (
-        len(ref_mean) == len(ref_std) == len(target)
-    ), "All inputs must be aligned and have the same length."
-    return np.sum(np.abs(target - ref_mean) / ref_std)
+    df[new_colname] = normalized_sum
+    return df
 
 
 def visualize_bulk_evaluation_results(eval_results: pd.DataFrame):
+
     df = replace_experiment_name_with_params(eval_results)
 
-    sum_dist_col_name = [
-        col for col in df.columns if col.startswith("normalized-sum-dist")
-    ][0]
+    def is_numeric_and_not_list(column):
+        # Check if the column is numeric and does not contain lists
+        return pd.api.types.is_numeric_dtype(column) and not any(
+            isinstance(i, list) for i in column
+        )
 
+    numeric_columns = [c for c in df.columns if is_numeric_and_not_list(df[c])]
     fig = go.Figure(
         data=go.Parcoords(
             line=dict(
-                color=df[sum_dist_col_name], colorscale="Blackbody", showscale=True
+                color=df["zscores_lastframe_normalized_sum"],
+                colorscale="Blackbody",
+                showscale=True,
             ),
             dimensions=[
                 dict(values=df[c], label=c, tickvals=df[c].unique())
-                for c in df.columns
-                if "-dist" not in c
-            ]
-            + [dict(values=df[c], label=c) for c in df.columns if "-dist" in c],
-            unselected=dict(line=dict(opacity=0)),
+                for c in numeric_columns
+            ],
+            # + [dict(values=df[c], label=c) for c in df.columns if "-dist" in c],
+            # unselected=dict(line=dict(opacity=0)),
         ),
     )
     return fig
 
 
-def replace_experiment_name_with_params(df, column_name="target_folder"):
+def replace_experiment_name_with_params(df, column_name="experiment_name"):
     return pd.concat(
         [
-            pd.json_normalize(df["target_folder"].apply(extract_parameters_from_name)),
-            df.drop(["target_folder"], axis=1),
+            pd.json_normalize(
+                df["experiment_name"].apply(extract_parameters_from_name)
+            ),
+            df.drop(["experiment_name"], axis=1),
         ],
         axis=1,
     )
@@ -273,64 +319,34 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Bulk evaluation of simulation results."
     )
-    parser.add_argument("--reference", type=str, help="path to reference csv file")
+    parser.add_argument("--target_csv", type=str, help="path to target csv file")
     parser.add_argument(
         "--root",
         type=str,
         help="path to simulation results where metric.csv can be found.",
     )
     parser.add_argument(
-        "--single_experiments",
-        type=bool,
-        default=False,
-        help="choose if each parameter choice has only one experiment in it, \
-        otherwise assumes multiple experiments for each set of parameters and \
-        uses dist2dist scores.",
-    )
-    parser.add_argument(
-        "--tcol", nargs="+", type=str, help="column names of target metrics."
-    )
-    parser.add_argument(
-        "--rmeancol",
-        nargs="+",
-        type=str,
-        help="column names of reference metric means.",
-    )
-    parser.add_argument(
-        "--rstdcol",
-        nargs="+",
-        type=str,
-        help="column names of reference metric stds.",
+        "--n_dataset",
+        type=int,
+        help="Number of measured points of the reference dataset used for Corrected standardard deviation",
     )
     parser.add_argument("--output", type=str, help="output save file.")
-    parser.add_argument("--timecol", type=str, help="column name of time.", default="t")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    dist_eval_results, endpoint_eval_results = bulk_evaluate(
-        args.reference,
-        args.root,
-        args.rmeancol,
-        args.rstdcol,
-        args.tcol,
-        args.timecol,
-        args.single_experiments,
-    )
-    os.makedirs(os.path.dirname(args.output), exist_ok=True)
-    dist_eval_results.to_csv(args.output)
-    print("-- Evaluation results saved to: ", args.output)
-    endpoint_output = args.output.replace(".csv", "_endpoint.csv")
-    endpoint_eval_results.to_csv(endpoint_output)
-    print("-- and                        : ", endpoint_output)
-    for colname in dist_eval_results.columns:
-        if "-dist" in colname:
-            print(f"-- Top experiments based on: {colname}")
-            print(colname, dist_eval_results[colname].describe())
-            print(dist_eval_results.sort_values(colname, ascending=True).head())
 
-    dist_fig = visualize_bulk_evaluation_results(dist_eval_results)
+    if os.path.exists(args.output):
+        print("-- Output already exists.")
+        exit(1)
+
+    df = evaluate_experiments(args.root, args.target_csv, args.n_dataset)
+    os.makedirs(os.path.dirname(args.output), exist_ok=True)
+    df.to_csv(args.output)
+    print("-- Evaluation results saved to: ", args.output)
+
+    dist_fig = visualize_bulk_evaluation_results(df)
 
     from plotly.offline import plot
 
@@ -339,13 +355,5 @@ if __name__ == "__main__":
         filename=os.path.join(
             os.path.dirname(args.output),
             "dist_bulk_eval_parallel_coordinate_plotly.html",
-        ),
-    )
-    endpoint_fig = visualize_bulk_evaluation_results(endpoint_eval_results)
-    plot(
-        endpoint_fig,
-        filename=os.path.join(
-            os.path.dirname(args.output),
-            "endpoint_bulk_eval_parallel_coordinate_plotly.html",
         ),
     )
