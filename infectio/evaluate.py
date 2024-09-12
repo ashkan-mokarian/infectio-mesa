@@ -52,6 +52,8 @@ def evaluate_experiments(
         # Add evaluation scores here
         # 1. zscore = (val-mean)/std (summed for time-series)
         # 2. corrected xi2 score (described in here: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10617697/#pone.0289619.s001)
+        # 3. t-test ONLY for lastframe which compares only based on mean of the target distribution
+        # 4. z-test is based on zscore with an additional division by sqrt(n) where n is the number of experiments
 
         # infected count
         z, zlast = evaluate_zscore(
@@ -78,6 +80,23 @@ def evaluate_experiments(
         )
         row["infected-count-corxi2-pval"] = xi2
         row["infected-count-lastframe-corxi2-pval"] = xi2last
+
+        ttest_pval_lastframe = evaluate_t_test_lastframe(
+            target_df,
+            target_colnames_mean[0],
+            experiment_metriccsv_paths,
+            experiment_colnames[0],
+        )
+        row["infected-count-lastframe-t-test-pvalue"] = ttest_pval_lastframe
+
+        ztest_pval_lastframe = evaluate_z_test_lastframe(
+            target_df,
+            target_colnames_mean[0],
+            target_colnames_std[0],
+            experiment_metriccsv_paths,
+            experiment_colnames[0],
+        )
+        row["infected-count-lastframe-z-test-pvalue"] = ztest_pval_lastframe
 
         # area
         z, zlast = evaluate_zscore(
@@ -138,7 +157,7 @@ def evaluate_experiments(
     # Add sum of the scores
     add_normalized_sum_to_df(
         eval_df,
-        new_colname="zscores_normalized_sum",
+        new_colname="zscores-normalized-sum",
         colnames_to_sum=[
             "infected-count-zscore-mean",
             "area-zscore-mean",
@@ -147,7 +166,7 @@ def evaluate_experiments(
     )
     add_normalized_sum_to_df(
         eval_df,
-        new_colname="zscores_lastframe_normalized_sum",
+        new_colname="zscores-lastframe-normalized-sum",
         colnames_to_sum=[
             "infected-count-lastframe-zscore-mean",
             "area-lastframe-zscore-mean",
@@ -252,6 +271,52 @@ def evaluate_corrected_xi2_score(
         return right_tail_probability_of_all_timepoints, lastframe_value
     else:
         return right_tail_probability_of_all_timepoints
+
+
+def evaluate_t_test_lastframe(
+    target_df, target_df_mean_colname, metriccsv_paths, exp_colname
+):
+    exp_df_list = []
+    for csv in metriccsv_paths:
+        exp_df = pd.read_csv(csv, index_col=time_colname)
+        exp_df_list.append(exp_df[exp_colname])
+    concatenated_exp_df = pd.concat(exp_df_list, axis=1)
+    aligned_df = pd.merge(
+        concatenated_exp_df, target_df, left_index=True, right_index=True, how="inner"
+    )
+    aligned_df.dropna()
+    aligned_df_lastframe = aligned_df.iloc[-1]
+    values = aligned_df_lastframe[exp_colname].values
+    t_stat, p_value = stats.ttest_1samp(
+        values, popmean=aligned_df_lastframe[target_df_mean_colname]
+    )
+    return p_value
+
+
+def evaluate_z_test_lastframe(
+    target_df,
+    target_df_mean_colname,
+    target_df_std_colname,
+    metriccsv_paths,
+    exp_colname,
+):
+    exp_df_list = []
+    for csv in metriccsv_paths:
+        exp_df = pd.read_csv(csv, index_col=time_colname)
+        exp_df_list.append(exp_df[exp_colname])
+    concatenated_exp_df = pd.concat(exp_df_list, axis=1)
+    aligned_df = pd.merge(
+        concatenated_exp_df, target_df, left_index=True, right_index=True, how="inner"
+    )
+    aligned_df.dropna()
+    aligned_df_lastframe = aligned_df.iloc[-1]
+    values = aligned_df_lastframe[exp_colname].values
+    n = len(values)
+    target_mean = aligned_df_lastframe[target_df_mean_colname]
+    target_std = aligned_df_lastframe[target_df_std_colname]
+    z_score = (values.mean() - target_mean) / (target_std / np.sqrt(n))
+    p_value = 1 - stats.norm.cdf(abs(z_score))
+    return p_value
 
 
 def add_normalized_sum_to_df(df, new_colname, colnames_to_sum):
