@@ -127,6 +127,23 @@ def evaluate_experiments(
         row["area-corxi2-pval"] = xi2
         row["area-lastframe-corxi2-pval"] = xi2last
 
+        ttest_pval_lastframe = evaluate_t_test_lastframe(
+            target_df,
+            target_colnames_mean[1],
+            experiment_metriccsv_paths,
+            experiment_colnames[1],
+        )
+        row["area-lastframe-t-test-pvalue"] = ttest_pval_lastframe
+
+        ztest_pval_lastframe = evaluate_z_test_lastframe(
+            target_df,
+            target_colnames_mean[1],
+            target_colnames_std[1],
+            experiment_metriccsv_paths,
+            experiment_colnames[1],
+        )
+        row["area-lastframe-z-test-pvalue"] = ztest_pval_lastframe
+
         # radial velocity
         z, zlast = evaluate_zscore(
             target_df,
@@ -152,6 +169,24 @@ def evaluate_experiments(
         )
         row["radial-velocity-corxi2-pval"] = xi2
         row["radial-velocity-lastframe-corxi2-pval"] = xi2last
+
+        ttest_pval_lastframe = evaluate_t_test_lastframe(
+            target_df,
+            target_colnames_mean[2],
+            experiment_metriccsv_paths,
+            experiment_colnames[2],
+        )
+        row["radial-velocity-lastframe-t-test-pvalue"] = ttest_pval_lastframe
+
+        ztest_pval_lastframe = evaluate_z_test_lastframe(
+            target_df,
+            target_colnames_mean[2],
+            target_colnames_std[2],
+            experiment_metriccsv_paths,
+            experiment_colnames[2],
+        )
+        row["radial-velocity-lastframe-z-test-pvalue"] = ztest_pval_lastframe
+        # END of EVALUATION SCORES
 
         eval_results.append(row)
 
