@@ -48,6 +48,9 @@ def evaluate_experiments(
         if len(experiment_metriccsv_paths) == 0:
             print("- no metric csvs found for ", exp_folder)
             continue
+        if len(experiment_metriccsv_paths) < 3:
+            print("- less than 3 metric csvs found for ", exp_folder)
+            continue
 
         # Add evaluation scores here
         # 1. zscore = (val-mean)/std (summed for time-series)
