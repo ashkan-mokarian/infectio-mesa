@@ -346,7 +346,7 @@ def visualize_bulk_evaluation_results(eval_results: pd.DataFrame):
     fig = go.Figure(
         data=go.Parcoords(
             line=dict(
-                color=df["zscores_lastframe_normalized_sum"],
+                color=df["zscores-lastframe-normalized-sum"],
                 colorscale="Blackbody",
                 showscale=True,
             ),
