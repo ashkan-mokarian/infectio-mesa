@@ -1,7 +1,41 @@
+import os
 from datetime import datetime
+
+from scipy.spatial import ConvexHull
 import numpy as np
 from matplotlib import pyplot as plt
-import os
+
+
+def perimeter(points):
+    """Calculate the perimeter of a closed shape formed by points.
+    Points in the list must be in clockwise or counter-clockwise order."""
+    distances = np.linalg.norm(np.diff(points, axis=0, append=points[:1]), axis=1)
+    return np.sum(distances)
+
+
+def area(points):
+    """Calculate the area using the Shoelace theorem (polygon area formula)."""
+    x, y = points[:, 0], points[:, 1]
+    return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+
+
+def circularity_metric(points):
+    """Compute the circularity metric for a set of 2D points."""
+    # Note that ConvexHull algorithm already orders the points clockwise.
+    if len(points) < 3:  # Need at least 3 points to form a polygon
+        return 0
+    hull = ConvexHull(points)
+    hull_points = [points[i] for i in hull.vertices]
+    hull_points = np.array(hull_points).reshape(-1, 2)
+
+    shape_perimeter = perimeter(hull_points)
+    shape_area = area(hull_points)
+
+    if shape_perimeter == 0:
+        return 0  # To avoid division by zero
+
+    circularity = (4 * np.pi * shape_area) / (shape_perimeter**2)
+    return circularity
 
 
 def rotate_vector(vec, radian):
@@ -58,6 +92,13 @@ def get_save_path(root, name=None):
 
 if __name__ == "__main__":
     # Testing
+
+    # Test for circularity meetric
+    def test_circularity_metric():
+        points = np.array([[1, 1], [2, 3], [4, 4], [5, 2], [3, 0]])
+        assert abs(circularity_metric(points) - 0.816) < 0.01
+
+    test_circularity_metric()
 
     # Test for direction_noise
     def test_direction_noise():
