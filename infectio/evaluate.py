@@ -186,6 +186,13 @@ def evaluate_experiments(
             experiment_colnames[2],
         )
         row["radial-velocity-lastframe-z-test-pvalue"] = ztest_pval_lastframe
+
+        # Circularity
+        circularity = evaluate_circularity_lastframe(
+            experiment_metriccsv_paths, exp_colname="circularity"
+        )
+        row["circularity-lastframe"] = circularity
+
         # END of EVALUATION SCORES
 
         eval_results.append(row)
@@ -355,6 +362,14 @@ def evaluate_z_test_lastframe(
     z_score = (values.mean() - target_mean) / (target_std / np.sqrt(n))
     p_value = 1 - stats.norm.cdf(abs(z_score))
     return p_value
+
+
+def evaluate_circularity_lastframe(metriccsv_paths, exp_colname="circularity"):
+    circularity = []
+    for csv in metriccsv_paths:
+        exp_df = pd.read_csv(csv, index_col=time_colname)
+        circularity.append(exp_df.iloc[-1][exp_colname])
+    return circularity
 
 
 def add_normalized_sum_to_df(df, new_colname, colnames_to_sum):
