@@ -19,6 +19,10 @@ def cell2cell_infection_chance(num_infected_neighbors, k, x0):
     return 1 / (1 + np.exp(-k * (num_infected_neighbors - x0)))
 
 
+def cell2cell_infection_chance_add_linears(infected_neighbors, t_max_inf):
+    return sum([c.time_infected / t_max_inf for c in infected_neighbors])
+
+
 class Cell(mesa.Agent):
     """
     A Cell agent
@@ -81,9 +85,12 @@ class Cell(mesa.Agent):
         # get infected in the current step
         # TODO: what distribution to use and what parameters. For now, sigmoid
         # with linear exponentiation
-        infection_prob = cell2cell_infection_chance(
-            len(infected_neighbors), self.opt.c2c_sigmoid_k, self.opt.c2c_sigmoid_x0
-        )
+        # infection_prob = cell2cell_infection_chance(
+        #     len(infected_neighbors), self.opt.c2c_sigmoid_k, self.opt.c2c_sigmoid_x0
+        # )
+        infection_prob = cell2cell_infection_chance_add_linears(
+            infected_neighbors, self.opt.c2c_sigmoid_x0
+        )  # ABUSING C2C_SIGMOID_X0 for something else for now TODO
         if infection_prob > self.random.random():
             self.infect_cell()
 
