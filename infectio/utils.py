@@ -90,6 +90,14 @@ def get_save_path(root, name=None):
     return save_path
 
 
+def parse_list_string(val):
+    if isinstance(val, str):
+        val = val.strip("[]")  # Remove square brackets
+        return [float(x) for x in val.split(",")] if val else []
+    else:
+        return val
+
+
 if __name__ == "__main__":
     # Testing
 

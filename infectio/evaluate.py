@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import numpy as np
 import os
 from scipy import stats
+from utils import parse_list_string
 
 # TODO: change these to one list, with difference being adding -mean and -std
 # to the end whenever you change the reference datasets and recompute them again
@@ -20,6 +21,11 @@ target_colnames_mean = [
     "radial-velocity-mean(um/min)",
 ]
 target_colnames_std = ["inf-count-std", "area-std(um2)", "radial-velocity-std(um/min)"]
+target_colnames_list = [
+    "inf-count-list",
+    "area-list(um2)",
+    "radial-velocity-list(um/min)",
+]
 experiment_colnames = ["infected-count", "area(um2)", "radial-velocity(um/min)"]
 time_colname = "t"
 
@@ -57,6 +63,7 @@ def evaluate_experiments(
         # 2. corrected xi2 score (described in here: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10617697/#pone.0289619.s001)
         # 3. t-test ONLY for lastframe which compares only based on mean of the target distribution
         # 4. z-test is based on zscore with an additional division by sqrt(n) where n is the number of experiments
+        # 5. ttest_ind (two sample ttest) of lastframe
 
         # infected count
         z, zlast = evaluate_zscore(
@@ -101,6 +108,25 @@ def evaluate_experiments(
         )
         row["infected-count-lastframe-z-test-pvalue"] = ztest_pval_lastframe
 
+        row["infected-count-lastframe-ttestind-pval(eqaula_var)"] = (
+            evaluate_ttest_ind_lastframe(
+                target_df,
+                target_colnames_list[0],
+                experiment_metriccsv_paths,
+                experiment_colnames[0],
+                equal_var=True,
+            )
+        )
+        row["infected-count-lastframe-ttestind-pval(not_eqaula_var)"] = (
+            evaluate_ttest_ind_lastframe(
+                target_df,
+                target_colnames_list[0],
+                experiment_metriccsv_paths,
+                experiment_colnames[0],
+                equal_var=False,
+            )
+        )
+
         # area
         z, zlast = evaluate_zscore(
             target_df,
@@ -144,6 +170,23 @@ def evaluate_experiments(
         )
         row["area-lastframe-z-test-pvalue"] = ztest_pval_lastframe
 
+        row["area-lastframe-ttestind-pval(eqaula_var)"] = evaluate_ttest_ind_lastframe(
+            target_df,
+            target_colnames_list[1],
+            experiment_metriccsv_paths,
+            experiment_colnames[1],
+            equal_var=True,
+        )
+        row["area-lastframe-ttestind-pval(not_eqaula_var)"] = (
+            evaluate_ttest_ind_lastframe(
+                target_df,
+                target_colnames_list[1],
+                experiment_metriccsv_paths,
+                experiment_colnames[1],
+                equal_var=False,
+            )
+        )
+
         # radial velocity
         z, zlast = evaluate_zscore(
             target_df,
@@ -186,6 +229,25 @@ def evaluate_experiments(
             experiment_colnames[2],
         )
         row["radial-velocity-lastframe-z-test-pvalue"] = ztest_pval_lastframe
+
+        row["radial-velocity-lastframe-ttestind-pval(eqaula_var)"] = (
+            evaluate_ttest_ind_lastframe(
+                target_df,
+                target_colnames_list[2],
+                experiment_metriccsv_paths,
+                experiment_colnames[2],
+                equal_var=True,
+            )
+        )
+        row["radial-velocity-lastframe-ttestind-pval(not_eqaula_var)"] = (
+            evaluate_ttest_ind_lastframe(
+                target_df,
+                target_colnames_list[0],
+                experiment_metriccsv_paths,
+                experiment_colnames[0],
+                equal_var=False,
+            )
+        )
 
         # Circularity
         circularity = evaluate_circularity_lastframe(
@@ -332,6 +394,7 @@ def evaluate_t_test_lastframe(
     aligned_df.dropna()
     aligned_df_lastframe = aligned_df.iloc[-1]
     values = aligned_df_lastframe[exp_colname].values
+    values = np.array(values, dtype=float)
     t_stat, p_value = stats.ttest_1samp(
         values, popmean=aligned_df_lastframe[target_df_mean_colname]
     )
@@ -361,6 +424,27 @@ def evaluate_z_test_lastframe(
     target_std = aligned_df_lastframe[target_df_std_colname]
     z_score = (values.mean() - target_mean) / (target_std / np.sqrt(n))
     p_value = 1 - stats.norm.cdf(abs(z_score))
+    return p_value
+
+
+def evaluate_ttest_ind_lastframe(
+    target_df, target_df_list_colname, metriccsv_paths, exp_colname, equal_var=True
+):
+    exp_df_list = []
+    for csv in metriccsv_paths:
+        exp_df = pd.read_csv(csv, index_col=time_colname)
+        exp_df_list.append(exp_df[exp_colname])
+    concatenated_exp_df = pd.concat(exp_df_list, axis=1)
+    aligned_df = pd.merge(
+        concatenated_exp_df, target_df, left_index=True, right_index=True, how="inner"
+    )
+    aligned_df.dropna()
+    aligned_df_lastframe = aligned_df.iloc[-1]
+    exp_values = np.array(aligned_df_lastframe[exp_colname].values, dtype=float)
+    target_list_values = np.array(
+        parse_list_string(aligned_df_lastframe[target_df_list_colname])
+    )
+    p_value = stats.ttest_ind(exp_values, target_list_values, equal_var=equal_var)[1]
     return p_value
 
 
