@@ -3,6 +3,7 @@ import numpy as np
 
 from infectio.particle import Homogenous2dDiffusion
 from infectio.reporters import StateList, StatePos, RadialVelocity, Area
+from infectio.utils import get_random_poisson_xy_numbers, get_random_einstein_xy_numbers
 
 from cell import Cell, State
 
@@ -60,30 +61,29 @@ class Model(mesa.Model):
 
         # Initialize agents randomly
 
-        # Poisson
-        # for i in range(self.num_agents - 1):
-        #     x = self.random.uniform(0, self.space.x_max)
-        #     y = self.random.uniform(0, self.space.y_max)
-        #     agent = Cell(i, self)
-        #     self.schedule.add(agent)
-        #     self.space.place_agent(agent, (x, y))
+        if self.opt.initial_random_placement_method == "poisson":
+            random_xy_points = get_random_poisson_xy_numbers(
+                self.num_agents - 1, 0, self.space.x_max
+            )
+        elif self.opt.initial_random_placement_method == "einstein":
+            random_xy_points = get_random_einstein_xy_numbers(
+                self.num_agents - 1,
+                0,
+                self.space.x_max,
+                0,
+                self.space.y_max,
+                self.opt.initial_random_placement_einstein_factor,
+            )
+        else:
+            raise ValueError(
+                "Invalid value for initial_random_placement_einstein_factor (current one is ` "
+                + self.opt.initial_random_placement_einstein_factor
+                + " `). Change in config file."
+            )
 
-        # Einstein, uniform placement + normaal dist kick
-        grid_x, grid_y = np.meshgrid(
-            np.linspace(0, self.space.x_max, int(np.sqrt(self.num_agents)) + 1),
-            np.linspace(0, self.space.y_max, int(np.sqrt(self.num_agents)) + 1),
-        )
-        grid_points = np.vstack([grid_x.ravel(), grid_y.ravel()]).T
-
-        # Add small random perturbations
-        perturbation = 0.5 * (self.width / int(np.sqrt(self.num_agents)))
-        perturbation_x = np.random.normal(0, perturbation, grid_points.shape[0])
-        perturbation_y = np.random.normal(0, perturbation, grid_points.shape[0])
-        grid_points[:, 0] += perturbation_x
-        grid_points[:, 1] += perturbation_y
-        for i in range(self.num_agents - 2):
-            x = grid_points[i, 0]
-            y = grid_points[i, 1]
+        for i in range(self.num_agents - 1):
+            x = random_xy_points[i, 0]
+            y = random_xy_points[i, 1]
             agent = Cell(i, self)
             self.schedule.add(agent)
             self.space.place_agent(agent, (x, y))
