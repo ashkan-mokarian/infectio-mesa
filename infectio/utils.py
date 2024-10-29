@@ -98,6 +98,31 @@ def parse_list_string(val):
         return val
 
 
+def get_random_poisson_xy_numbers(n, x_min, x_max, y_min, y_max):
+    random_xy = np.empty((n, 2))
+    random_xy[:, 0] = np.random.uniform(x_min, x_max, size=n)
+    random_xy[:, 1] = np.random.uniform(y_min, y_max, size=n)
+    return random_xy
+
+
+def get_random_einstein_xy_numbers(n, x_min, x_max, y_min, y_max, einstein_factor):
+    # Einstein, uniform placement + normaal dist kick
+    grid_x, grid_y = np.meshgrid(
+        np.linspace(x_min, x_max, int(np.sqrt(n)) + 1),
+        np.linspace(y_min, y_max, int(np.sqrt(n)) + 1),
+    )
+    grid_points = np.vstack([grid_x.ravel(), grid_y.ravel()]).T
+    # Add small random perturbations
+    perturbation = einstein_factor * (
+        np.sqrt((x_max - x_min) * (y_max - y_min)) / int(np.sqrt(n))
+    )
+    perturbation_x = np.random.normal(0, perturbation, grid_points.shape[0])
+    perturbation_y = np.random.normal(0, perturbation, grid_points.shape[0])
+    grid_points[:, 0] += perturbation_x
+    grid_points[:, 1] += perturbation_y
+    return grid_points
+
+
 if __name__ == "__main__":
     # Testing
 

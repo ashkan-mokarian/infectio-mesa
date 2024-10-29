@@ -145,6 +145,16 @@ def get_opts():
     p.add("--width", type=int, help="width of the simulation in pixels.")
     p.add("--height", type=int, help="height of the simulation in pixels.")
     p.add("--num_cells", type=int, help="number of cells to simulate.")
+    p.add(
+        "--initial_random_placement_method",
+        type=str,
+        help="poisson (aka uniform) / einstein (posisson+kick)",
+    )
+    p.add(
+        "--initial_random_placement_einstein_factor",
+        type=float,
+        help="Multiplicative factor for perturbation (between 0 and 1 is recommended, but anything works.)",
+    )
     p.add("--disable_diffusion", action="store_true")
     p.add("--alpha", type=float)
     p.add("--diff_steps", type=int)
