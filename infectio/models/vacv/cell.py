@@ -95,7 +95,7 @@ class Cell(mesa.Agent):
 
         infection_prob = cell2cell_infection_chance_add_sigmoids(
             infected_neighbors,
-            self.opt.c2c_sigmoid_x0,
+            self.opt.c2c_sigmoid_t0,
             self.opt.c2c_sigmoid_k,
             self.opt.c2c_sigmoid_tmid,
         )

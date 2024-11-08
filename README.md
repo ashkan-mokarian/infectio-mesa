@@ -17,8 +17,8 @@ obtained from real world plaque experiements.
 
 ## Install dependecies
 
-### Conda
-`conda create env -f environment.yml`.
+<!-- ### Conda
+`conda create env -f environment.yml`. -->
 
 ### venv
 Could not make conda nor poetry work on hemera, using venv instead: 
@@ -31,7 +31,6 @@ pip install -r requirements.txt;
 ## Run simulation
 
 ### VACV + Epithelial model
-
 Create a config file (e.g. similiar to [default config](./infectio/models/vacv/default_config.ini)) and modify
 accordingly. You can also use arguments in CLI instead (type `--help` for available options). Then with
 python environment active, run: `python(3) infectio/models/vacv/run.py -c path/to/config.py [optional arguments]`.
