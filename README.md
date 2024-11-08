@@ -33,7 +33,7 @@ pip install -r requirements.txt;
 ### VACV + Epithelial model
 
 Create a config file (e.g. similiar to [default config](./infectio/models/vacv/default_config.ini)) and modify
-accordingly. You can also use arguments in CLI instead (take a look at `--help` for available options). Then with
+accordingly. You can also use arguments in CLI instead (type `--help` for available options). Then with
 python environment active, run: `python(3) infectio/models/vacv/run.py -c path/to/config.py [optional arguments]`.
 
 ## Create a new model
@@ -49,10 +49,12 @@ area which shows the territory of the plaque/virus.
 * Inconsistency for Radius information; in std output, the radius to center of 
 infection is shown. In graph plots, the center to convex center is shown.
 
-* Default num_cells = 2750 number used in configs are based on the density of
-cells computed on a single image with pixel dimensions that could possibly be 
-wrong. So be cautious about its correctness. The calculations you can find at 
-MacBookM1->workspace/Cellpose/01_analyze_results.ipynb
+* num_cells changed to 3500 instead of previously 2750 in config files, based on
+visually matching area and inf_count numbers.
+(Before the recent change for num_cells: Default num_cells = 2750 number used in
+configs are based on the density of cells computed on a single image with pixel
+dimensions that could possibly be wrong. So be cautious about its correctness.
+The calculations you can find at MacBookM1->workspace/Cellpose/01_analyze_results.ipynb)
 
 * vmin and vmax of colorbar are based on 5 and 95 % of the data. If vmax is max, then the rest of the plot except for a few locations is almost in the very low range of colorbar range and not very clear. Needs better clarification, but most probably because molecule diffusion very very slow in the medium and the single point peak stays large during the diffusion for few steps.
 
@@ -61,9 +63,3 @@ columns with y, first row is x=0 and first column is y=0. Therefore for ploting 
 plt.imshow(u.T, origin='lower')
 
 * cells are points. So molecules are produced at a single location. They also do not collide, ...
-
-* Can we avoid discretization of particle scalar fields and work completely with
-well defined function. For example solve the diffusion with it, and also for
-gradient computations be able to use [this python package: numdifftools](https://numdifftools.readthedocs.io/en/latest/index.html).
-
-* More accurate gradients? Look here [Structure tensor and diagonal gradients](https://bartwronski.com/2021/02/28/computing-gradients-on-grids-forward-central-and-diagonal-differences/)

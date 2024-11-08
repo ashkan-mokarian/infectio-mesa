@@ -165,7 +165,16 @@ def get_opts():
     p.add("--para_produce_t1", type=float)
     p.add("--para_produce_t2", type=float)
     p.add("--c2c_sigmoid_k", type=float)
-    p.add("--c2c_sigmoid_x0", type=float)
+    p.add(
+        "--c2c_sigmoid_t0",
+        type=float,
+        help="time where c2c inf chance stays 0 after being infected.",
+    )
+    p.add(
+        "--c2c_sigmoid_tmid",
+        type=float,
+        help="time where c2c infection chance gets 0.5.",
+    )
     p.add("--c2c_radius_search", type=float)
     p.add(
         "--reference_file",
