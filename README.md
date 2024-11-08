@@ -33,7 +33,12 @@ pip install -r requirements.txt;
 ### VACV + Epithelial model
 Create a config file (e.g. similiar to [default config](./infectio/models/vacv/default_config.ini)) and modify
 accordingly. You can also use arguments in CLI instead (type `--help` for available options). Then with
-python environment active, run: `python(3) infectio/models/vacv/run.py -c path/to/config.py [optional arguments]`.
+python environment active, run: `python(3) infectio/models/vacv/run.py -c path/to/config.py [optional arguments]`. Note
+that this config file contains all the parameter settings for the full model.
+
+If you only intend to simulate the `dVGFdF11` case, then it is recommended
+to use the config file [dVGFdF11_default_config.ini](./examples/vacv-epithelial/dVGFdF11_default_config.ini)
+instead. This config file only contains relevant settings and turns off irrelevant parts of the simulation.
 
 ## Create a new model
 TBD

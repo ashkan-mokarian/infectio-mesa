@@ -186,7 +186,10 @@ def get_opts():
     print(p.format_values())
 
     load_dotenv()
-    PROJECT_PATH = os.getenv("PROJECT_PATH")
+    PROJECT_PATH = os.getenv(
+        "PROJECT_PATH",
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")),
+    )
 
     if not options.save_root:
         options.save_root = os.path.abspath(
