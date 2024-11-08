@@ -12,20 +12,23 @@ class State(Enum):
     I = "Infected"
 
 
-# For now, let's choose a simple sigmoid function for deciding cell-cell infection chance
-def cell2cell_infection_chance(num_infected_neighbors, k, x0):
-    if num_infected_neighbors == 0:
-        return 0.0
-    return 1 / (1 + np.exp(-k * (num_infected_neighbors - x0)))
+def sigmoid_infectivity_chance(t, t0, k, tmid):
+    return (
+        0
+        if t < t0
+        else (1 / (1 + np.exp(-k * (t - tmid))) - 1 / (1 + np.exp(-k * (t0 - tmid))))
+        * (
+            (1 + np.exp(-k * (t0 - tmid))) / (np.exp(-k * (t0 - tmid)))
+        )  # almost the usual sigmoid function, just subtracted such that it gets 0 at t0 and also multiplied such that it goes to 1
+    )
 
 
-def sigmoid_infectivity_chance(t, t0, k):
-    return 1 / (1 + np.exp(-k * (t - t0)))
-
-
-def cell2cell_infection_chance_add_sigmoids(infected_neighbors, t0, k):
+def cell2cell_infection_chance_add_sigmoids(infected_neighbors, t0, k, tmid):
     return sum(
-        [sigmoid_infectivity_chance(c.time_infected, t0, k) for c in infected_neighbors]
+        [
+            sigmoid_infectivity_chance(c.time_infected, t0, k, tmid)
+            for c in infected_neighbors
+        ]
     )
 
 
@@ -91,7 +94,10 @@ class Cell(mesa.Agent):
         # get infected in the current step
 
         infection_prob = cell2cell_infection_chance_add_sigmoids(
-            infected_neighbors, self.opt.c2c_sigmoid_x0, self.opt.c2c_sigmoid_k
+            infected_neighbors,
+            self.opt.c2c_sigmoid_x0,
+            self.opt.c2c_sigmoid_k,
+            self.opt.c2c_sigmoid_tmid,
         )
 
         if infection_prob > self.random.random():
