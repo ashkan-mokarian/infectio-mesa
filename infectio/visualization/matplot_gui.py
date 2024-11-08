@@ -39,7 +39,10 @@ class Matplot:
         self.State = State
         self.state_style_dict = state_style_dict
         self.steps = []
-        self.num_lists = {k: [] for k in self.State}
+
+        # Only keeping I(nfected) states since the graph for S ruins the range
+        # for better comparison and not very informative.
+        self.num_lists = {k: [] for k in self.State if k is not self.State.S}
 
         # replacing radius with area
         # Using line plot to show radii mean, max, and min. To avoid keeping
