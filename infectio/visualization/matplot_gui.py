@@ -3,6 +3,7 @@ from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import pandas as pd
+import ast
 
 
 class Matplot:
@@ -55,6 +56,12 @@ class Matplot:
         # For radial velocity
         self.radial_velocity = []
 
+        # option to plot all experimental data alongside the simulation
+        self.plot_verbosity = model.opt.plot_verbosity
+        self.standard_reference_metrics = self.read_reference_metrics(
+            model.opt.reference_file
+        )
+
     def update(self, step=None):
         # Initialize three lists for each cell state
         state_lists = {k: [] for k in self.State}
@@ -63,11 +70,45 @@ class Matplot:
         if step is None:
             step = self.steps[-1] + 1 if self.steps else 0
         self.steps.append(step)
+
         # self.plot_lin_radius(state_lists[self.State.I])
         self.plot_lin_area()
         self.plot_lin_radius_velocity()
         self.plot_lin_count(state_lists)
         self.plot_particle()
+
+        if self.plot_verbosity in {1, 3}:
+            for plot_key, standard_refdf in self.standard_reference_metrics.items():
+                if plot_key == "area":
+                    self.plot_mean_and_stdband_reference_metrics(
+                        self.ax_lin_area, standard_refdf
+                    )
+                elif plot_key == "radial_velocity":
+                    self.plot_mean_and_stdband_reference_metrics(
+                        self.ax_lin_radial_velocity, standard_refdf
+                    )
+                elif plot_key == "count":
+                    self.plot_mean_and_stdband_reference_metrics(
+                        self.ax_lin_count, standard_refdf
+                    )
+                else:
+                    raise ValueError(f"plot key {plot_key} not implemented")
+        if self.plot_verbosity in {2, 3}:
+            for plot_key, standard_refdf in self.standard_reference_metrics.items():
+                if plot_key == "area":
+                    self.plot_individual_reference_metrics(
+                        self.ax_lin_area, standard_refdf
+                    )
+                elif plot_key == "radial_velocity":
+                    self.plot_individual_reference_metrics(
+                        self.ax_lin_radial_velocity, standard_refdf
+                    )
+                elif plot_key == "count":
+                    self.plot_individual_reference_metrics(
+                        self.ax_lin_count, standard_refdf
+                    )
+                else:
+                    raise ValueError(f"plot key {plot_key} not implemented")
 
         plt.draw()
 
@@ -197,64 +238,76 @@ class Matplot:
         else:
             self.colorbar = self.fig.colorbar(diff_plot, ax=self.ax_colorbar)
 
-    def add_reference_metrics(self, reference_file):
-
-        def read_reference_metrics(
-            reference_file,
-            reference_colnames={
-                "count": {"t": "t", "inf-count-mean": "mean", "inf-count-std": "std"},
-                # "radius": {
-                #     "t": "t",
-                #     "radius-mean(um)": "mean",
-                #     "radius-std(um)": "std",
-                # },
-                "area": {
-                    "t": "t",
-                    "area-mean(um2)": "mean",
-                    "area-std(um2)": "std",
-                },
-                "radial_velocity": {
-                    "t": "t",
-                    "radial-velocity-mean(um/min)": "mean",
-                    "radial-velocity-std(um/min)": "std",
-                },
+    def read_reference_metrics(
+        self,
+        reference_file,
+        reference_colnames={
+            "count": {
+                "t": "t",
+                "inf-count-mean": "mean",
+                "inf-count-std": "std",
+                "inf-count-list": "list",
             },
-        ):
-            refdf = pd.read_csv(reference_file)
-            standard_metrics = {}
-            for plot_key, refdf_colnames in reference_colnames.items():
-                standard_refdf = refdf.loc[
-                    :, [v for v in refdf_colnames.keys()]
-                ].rename(columns=refdf_colnames)
-                standard_metrics[plot_key] = standard_refdf
-            return standard_metrics
+            # "radius": {
+            #     "t": "t",
+            #     "radius-mean(um)": "mean",
+            #     "radius-std(um)": "std",
+            # },
+            "area": {
+                "t": "t",
+                "area-mean(um2)": "mean",
+                "area-std(um2)": "std",
+                "area-list(um2)": "list",
+            },
+            "radial_velocity": {
+                "t": "t",
+                "radial-velocity-mean(um/min)": "mean",
+                "radial-velocity-std(um/min)": "std",
+                "radial-velocity-list(um/min)": "list",
+            },
+        },
+    ):
+        refdf = pd.read_csv(reference_file)
+        standard_metrics = {}
+        for plot_key, refdf_colnames in reference_colnames.items():
+            standard_refdf = refdf.loc[:, [v for v in refdf_colnames.keys()]].rename(
+                columns=refdf_colnames
+            )
+            standard_refdf["list"] = standard_refdf["list"].apply(ast.literal_eval)
+            standard_metrics[plot_key] = standard_refdf
+        return standard_metrics
 
-        def add_reference_to_plot(ax, standard_df):
+    def plot_mean_and_stdband_reference_metrics(self, ax, standard_df):
+        ax.plot(
+            standard_df["t"],
+            standard_df["mean"],
+            label="dataset",
+            color="black",
+            alpha=0.7,
+        )
+        ax.fill_between(
+            standard_df["t"],
+            standard_df["mean"] - standard_df["std"],
+            standard_df["mean"] + standard_df["std"],
+            alpha=0.3,
+            color="black",
+        )
+        ax.legend(loc="center left")
+
+    def plot_individual_reference_metrics(self, ax, standard_df):
+        individual_metrics_df = pd.DataFrame(
+            standard_df["list"].tolist(),
+            columns=[
+                f"Experiment_{i+1}" for i in range(len(standard_df["list"].iloc[0]))
+            ],
+        )
+        individual_metrics_df["t"] = standard_df["t"]
+        for i in range(len(individual_metrics_df.columns) - 1):
             ax.plot(
-                standard_df["t"],
-                standard_df["mean"],
-                label="dataset",
+                individual_metrics_df["t"],
+                individual_metrics_df[f"Experiment_{i+1}"],
                 color="black",
+                linestyle="--",
                 alpha=0.5,
+                linewidth=0.5,
             )
-            ax.fill_between(
-                standard_df["t"],
-                standard_df["mean"] - standard_df["std"],
-                standard_df["mean"] + standard_df["std"],
-                alpha=0.2,
-                color="black",
-            )
-            ax.legend(loc="center left")
-
-        standard_reference_metrics = read_reference_metrics(reference_file)
-        for plot_key, standard_refdf in standard_reference_metrics.items():
-            if plot_key == "count":
-                add_reference_to_plot(self.ax_lin_count, standard_refdf)
-            elif plot_key == "radius":
-                add_reference_to_plot(self.ax_lin_radius, standard_refdf)
-            elif plot_key == "area":
-                add_reference_to_plot(self.ax_lin_area, standard_refdf)
-            elif plot_key == "radial_velocity":
-                add_reference_to_plot(self.ax_lin_radial_velocity, standard_refdf)
-            else:
-                raise ValueError(f"Plot key {plot_key} not recognized.")

@@ -107,9 +107,6 @@ def run(opt):
             writer.writerow(frame_data)
 
     # Add reference metrics to the last plot and save it
-    if opt.reference_file:
-        print("Adding reference metrics.")
-        plot.add_reference_metrics(opt.reference_file)
     plt.savefig(os.path.join(save_path, "plot_final.png"))
 
     print(f"Elapsed time: {time.perf_counter() - start_time:.3f}")
@@ -180,6 +177,11 @@ def get_opts():
         "--reference_file",
         type=str,
         help="path to reference file. Contains mean and std of number of infected cells and radius of plaque across different times (relative to project root).",
+    )
+    p.add(
+        "--plot_verbosity",
+        type=int,
+        help="0: no reference metrics added to plots. 1: only add mean and std. 2: only add individual experimental metrics. 3: add all.",
     )
 
     options = p.parse_args()
