@@ -23,13 +23,21 @@ def sigmoid_infectivity_chance(t, t0, k, tmid):
     )
 
 
-def cell2cell_infection_chance_add_sigmoids(infected_neighbors, t0, k, tmid):
-    return sum(
+def cell2cell_infection_chance_add_sigmoids(
+    infected_neighbors, first_inf_cell_t_inf, lag_time, t0, k, tmid
+):
+
+    chances = sum(
         [
             sigmoid_infectivity_chance(c.time_infected, t0, k, tmid)
             for c in infected_neighbors
         ]
     )
+    if first_inf_cell_t_inf > 0:
+        chances += sigmoid_infectivity_chance(
+            first_inf_cell_t_inf, t0 - lag_time, k, tmid - lag_time
+        )
+    return chances
 
 
 class Cell(mesa.Agent):
@@ -81,20 +89,33 @@ class Cell(mesa.Agent):
         if self.state is not State.S:
             return
         # Simple cell-cell infection only based on numbers
-        infected_neighbors = [
-            c
-            for c in self.model.space.get_neighbors(
-                self.pos,
-                radius=self.opt.c2c_radius_search,
-                include_center=False,
-            )
-            if c.time_infected
-        ]  # c.time_infected checks for both, if cell is
+        infected_neighbors = []
+        first_inf_cell_t_inf = 0
+        for c in self.model.space.get_neighbors(
+            self.pos, radius=self.opt.c2c_radius_search, include_center=False
+        ):
+            if not c.time_infected:
+                continue
+            if c.unique_id == self.model.first_inf_cell:
+                first_inf_cell_t_inf = c.time_infected
+            else:
+                infected_neighbors.append(c)
+        # infected_neighbors = [
+        #     c
+        #     for c in self.model.space.get_neighbors(
+        #         self.pos,
+        #         radius=self.opt.c2c_radius_search,
+        #         include_center=False,
+        #     )
+        #     if c.time_infected
+        # ]  # c.time_infected checks for both, if cell is
         # infected, and also, if it wasn't decided to
         # get infected in the current step
 
         infection_prob = cell2cell_infection_chance_add_sigmoids(
             infected_neighbors,
+            first_inf_cell_t_inf,
+            self.model.opt.first_cell_lag,
             self.opt.c2c_sigmoid_t0,
             self.opt.c2c_sigmoid_k,
             self.opt.c2c_sigmoid_tmid,

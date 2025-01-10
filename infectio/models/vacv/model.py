@@ -94,6 +94,8 @@ class Model(mesa.Model):
         self.space.place_agent(agent, (width / 2, height / 2))
         self.schedule.add(agent)
 
+        self.first_inf_cell = agent.unique_id
+
         self.running = True
 
     def step(self):

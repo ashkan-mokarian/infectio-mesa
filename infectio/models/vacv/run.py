@@ -183,6 +183,7 @@ def get_opts():
         type=int,
         help="0: no reference metrics added to plots. 1: only add mean and std. 2: only add individual experimental metrics. 3: add all.",
     )
+    p.add("--first_cell_lag", type=int)
 
     options = p.parse_args()
     print(p.format_values())

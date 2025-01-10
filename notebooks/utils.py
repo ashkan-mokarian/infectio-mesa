@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
 
 # This function handles the cases of lists when reading from a csv file where lists with multiple values are read as strings but with one value come without double quptions
@@ -33,6 +34,25 @@ def read_and_clean_df(eval_csv):
         lambda x: sum(x) / len(x)
     )
     return df
+
+
+def list_sim_paths(root: str):
+    """
+    List all simulation paths in the given root directory.
+    """
+    sim_paths = []
+
+    def recursive_add_simpaths(root: str):
+        paths = []
+        if "metric.csv" in os.listdir(root) and "pos.csv" in os.listdir(root):
+            return [root]
+        for path in os.listdir(root):
+            subpath = os.path.join(root, path)
+            if os.path.isdir(subpath):
+                paths += recursive_add_simpaths(subpath)
+        return paths
+
+    return recursive_add_simpaths(root)
 
 
 def add_param_cols_from_experiment_name(df):
