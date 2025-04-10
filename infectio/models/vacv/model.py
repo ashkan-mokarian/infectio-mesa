@@ -17,11 +17,22 @@ class Model(mesa.Model):
     def __init__(self, opt):
         super().__init__()
         self.opt = opt
-        self.num_agents = opt.num_cells
+        # self.num_agents = opt.num_cells
         self.width = opt.width
         self.height = opt.height
         width = self.width
         height = self.height
+
+        # num cells calculated by cell density values. cell density is a random
+        # variable and we sample it from a gaussian distribution with known mean
+        # and std values from config
+        sampled_density = np.random.normal(
+            loc=self.opt.cell_density_mean, scale=self.opt.cell_density_std
+        )
+        self.num_agents = int(
+            sampled_density
+            * (self.opt.width * self.opt.height * (self.opt.pixel_length) ** 2)
+        )
 
         # By having time_infected property for each cell, we don't need to have
         # Multiple schedulers for each state. time_infected also becomes handy

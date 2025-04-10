@@ -141,7 +141,16 @@ def get_opts():
     p.add("--pixel_length", type=float, help="length of a pixel in micro meters (um).")
     p.add("--width", type=int, help="width of the simulation in pixels.")
     p.add("--height", type=int, help="height of the simulation in pixels.")
-    p.add("--num_cells", type=int, help="number of cells to simulate.")
+    p.add(
+        "--cell_density_mean",
+        type=float,
+        help="mean of density of the monolayer cells in #/um2.",
+    )
+    p.add(
+        "--cell_density_std",
+        type=float,
+        help="std of density of the monolayer cells in #/um2.",
+    )
     p.add(
         "--initial_random_placement_method",
         type=str,
