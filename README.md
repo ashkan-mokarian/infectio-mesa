@@ -43,6 +43,24 @@ instead. This config file only contains relevant settings and turns off irreleva
 ## Create a new model
 TBD
 
+# Batch run on SLURM cluster
+
+## Relevant files
+
+* Firsly, using 'scripts/generate_param_list_file_for_array.py' generate a .txt containing a list of experiments where 
+each line contains one simulation experiment. By referencing the line number, job descriptions are sent to the array
+job scheduler.
+
+* scripts/submit_param_array_from_listfile.sh: Define the specifications of the batch of simulations here such as
+number of samples for each parameter, save root, and the parameter combination list generated in the previous step.
+This will create a tmp_run.sbatch by populating placeholders in the file scripts/run_array_template.sh, create a new
+scripts/tmp_run.sbatch file with the new values filled in and run this file in the end.
+
+* in 'scripts/tmp_run.sbatch' (or originally in scripts/run_array_template.sbatch), there is an offset parameter. In 
+the case that the number of experiments exceeds the max jobs per user limit on the cluster, you can change this offset
+to go over all the lines in the parameter_combinations.txt. manually change the offset and run tmp_run.sbatch otherwise
+no need to run tmp_run.sbatch manually.
+
 # Notes
 
 * CHANGELOG 20.06.2023: change the three phenotype metrics to area, number, and radial velocity.
