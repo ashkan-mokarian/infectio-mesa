@@ -125,17 +125,6 @@ class Cell(mesa.Agent):
                 first_inf_cell_t_inf = c.time_infected
             else:
                 infected_neighbors.append(c)
-        # infected_neighbors = [
-        #     c
-        #     for c in self.model.space.get_neighbors(
-        #         self.pos,
-        #         radius=self.opt.c2c_radius_search,
-        #         include_center=False,
-        #     )
-        #     if c.time_infected
-        # ]  # c.time_infected checks for both, if cell is
-        # infected, and also, if it wasn't decided to
-        # get infected in the current step
 
         infection_prob = cell2cell_infection_chance_add_sigmoids(
             infected_neighbors,
