@@ -1,7 +1,7 @@
 import mesa
 import numpy as np
 
-from infectio.particle import Homogenous2dDiffusion
+from infectio.diffusion_solver import Homogenous2dDiffusion
 from infectio.reporters import StateList, StatePos, RadialVelocity, Area
 from infectio.utils import get_random_poisson_xy_numbers, get_random_einstein_xy_numbers
 

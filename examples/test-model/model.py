@@ -2,7 +2,7 @@ import mesa
 import numpy as np
 
 from cell import Cell, State
-from infectio.particle import Homogenous2dDiffusion
+from infectio.diffusion_solver import Homogenous2dDiffusion
 import options as opt
 
 
