@@ -4,6 +4,7 @@ import numpy as np
 from infectio.diffusion_solver import Homogenous2dDiffusion
 from infectio.reporters import StateList, StatePos, RadialVelocity, Area
 from infectio.utils import get_random_poisson_xy_numbers, get_random_einstein_xy_numbers
+from infectio.diffusion_solver import create_diffusion_solver
 
 from cell import Cell, State
 
@@ -47,12 +48,22 @@ class Model(mesa.Model):
             # VGF particles in space, used for molecular diffusion
             # \gamma = alpha * delta_t / delta_x ** 2 where alpha is the diffusion constant
             diffusion_delta_t = opt.time_per_step / opt.diff_steps
-            GAMMA = opt.alpha * diffusion_delta_t / (opt.pixel_length**2)
-            self.particle = Homogenous2dDiffusion(
-                GAMMA,
-                width,
-                height,
-                opt.diff_steps,
+            # GAMMA = opt.alpha * diffusion_delta_t / (opt.pixel_length**2)
+            # self.particle = Homogenous2dDiffusion(
+            #     GAMMA,
+            #     width,
+            #     height,
+            #     opt.diff_steps,
+            # )
+            self.particle = create_diffusion_solver(
+                "cpu",
+                width=width,
+                height=height,
+                steps_per_step=opt.diff_steps,
+                u_init=None,
+                alpha=opt.alpha,
+                dx=opt.pixel_length,
+                dt=diffusion_delta_t,
             )
 
         state_lists = StateList(self, State)

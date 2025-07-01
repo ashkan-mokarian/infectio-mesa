@@ -118,12 +118,14 @@ class Cell(mesa.Agent):
             return
         x, y = self.pos
         # Two-slope production for infected cells
-        self.model.particle.u[int(x), int(y)] += two_slope_function(
+        u = self.model.particle.get_result()
+        u[int(x), int(y)] += two_slope_function(
             self.time_infected,
             self.opt.para_produce_max,
             self.opt.para_produce_t1,
             self.opt.para_produce_t2,
         )
+        self.model.particle.update_u(u)
 
     def step(self):
         """
