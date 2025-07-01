@@ -27,6 +27,9 @@ class Homogenous2dDiffusion:
         self.gamma = gamma
         self._grad = None
 
+    def update_u(self, u_np):
+        self.u = u_np
+
     def step(self):
         for _ in range(self.num_steps):
             u = np.pad(self.u, (1, 1), "constant", constant_values=0)
@@ -54,6 +57,9 @@ class Homogenous2dDiffusion:
         if self._grad is None:
             self.compute_grad()
         return self._grad[x, y]
+
+    def get_result(self):
+        return self.u
 
 
 class CudaDiffusionFFT2D:
@@ -87,8 +93,6 @@ class CudaDiffusionFFT2D:
         self._grad = None
 
     def compute_grad(self):
-        from scipy import ndimage
-
         u_cpu = cp.asnumpy(self.u)
         grad_x = ndimage.sobel(u_cpu, axis=0)
         grad_y = ndimage.sobel(u_cpu, axis=1)
