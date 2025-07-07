@@ -19,8 +19,8 @@
 #SBATCH -J infectio-param-array
 
 # stdouts
-#SBATCH --output=output/logs/out_%A_%a.log
-#SBATCH --error=output/logs/err_%A_%a.log
+#SBATCH --output=/dev/null
+#SBATCH --error=/dev/null
 #SBATCH --array=0-9999
 
 # Set the SAVE_ROOT dynamically
