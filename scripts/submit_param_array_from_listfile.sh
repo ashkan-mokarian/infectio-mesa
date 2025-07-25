@@ -32,7 +32,7 @@ NUM_PARAMS=$(wc -l < "$PARAM_LIST_PATH")
 TOTAL_TASKS=$((NUM_PARAMS * NUM_EXPERIMENTS))
 
 # Replace placeholders in SLURM template and submit
-sed "s|#SBATCH --array=0-9999|#SBATCH --array=0-$((TOTAL_TASKS - 1))|; s|__SAVE_ROOT__|$SAVE_ROOT|; s|__CONFIG_PATH__|$CONFIG_PATH|; s|__PARAM_LIST_PATH__|$PARAM_LIST_PATH|; s|__NUM_EXPERIMENTS__|$NUM_EXPERIMENTS|" scripts/run_array_template.sh > scripts/tmp_run.sbatch
+sed "s|#SBATCH --array=0-9999|#SBATCH --array=0-$((TOTAL_TASKS - 1))|; s|__SAVE_ROOT__|$SAVE_ROOT|; s|__CONFIG_PATH__|$CONFIG_PATH|; s|__PARAM_LIST_PATH__|$PARAM_LIST_PATH|; s|__NUM_EXPERIMENTS__|$NUM_EXPERIMENTS|" scripts/run_array_template.sbatch > scripts/tmp_run.sbatch
 
 # Submit with the final simulation -c flag and hardcoded configuration path
 sbatch scripts/tmp_run.sbatch
