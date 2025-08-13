@@ -17,9 +17,6 @@ obtained from real world plaque experiements.
 
 ## Install dependecies
 
-<!-- ### Conda
-`conda create env -f environment.yml`. -->
-
 ### venv
 Could not make conda nor poetry work on hemera, using venv instead: 
 ```shell
@@ -35,10 +32,6 @@ Create a config file (e.g. similiar to [default config](./infectio/models/vacv/d
 accordingly. You can also use arguments in CLI instead (type `--help` for available options). Then with
 python environment active, run: `python(3) infectio/models/vacv/run.py -c path/to/config.py [optional arguments]`. Note
 that this config file contains all the parameter settings for the full model.
-
-If you only intend to simulate the `dVGFdF11` case, then it is recommended
-to use the config file [dVGFdF11_default_config.ini](./examples/vacv-epithelial/dVGFdF11_default_config.ini)
-instead. This config file only contains relevant settings and turns off irrelevant parts of the simulation.
 
 ## Create a new model
 TBD
@@ -60,28 +53,3 @@ scripts/tmp_run.sbatch file with the new values filled in and run this file in t
 the case that the number of experiments exceeds the max jobs per user limit on the cluster, you can change this offset
 to go over all the lines in the parameter_combinations.txt. manually change the offset and run tmp_run.sbatch otherwise
 no need to run tmp_run.sbatch manually.
-
-# Notes
-
-* CHANGELOG 20.06.2023: change the three phenotype metrics to area, number, and radial velocity.
-I think radius is not very well defined, whether it is from infection center or
-from convex center, and which one, the average, min, max, etc. So better to use
-area which shows the territory of the plaque/virus.
-
-* Inconsistency for Radius information; in std output, the radius to center of 
-infection is shown. In graph plots, the center to convex center is shown.
-
-* num_cells changed to 3500 instead of previously 2750 in config files, based on
-visually matching area and inf_count numbers.
-(Before the recent change for num_cells: Default num_cells = 2750 number used in
-configs are based on the density of cells computed on a single image with pixel
-dimensions that could possibly be wrong. So be cautious about its correctness.
-The calculations you can find at MacBookM1->workspace/Cellpose/01_analyze_results.ipynb)
-
-* vmin and vmax of colorbar are based on 5 and 95 % of the data. If vmax is max, then the rest of the plot except for a few locations is almost in the very low range of colorbar range and not very clear. Needs better clarification, but most probably because molecule diffusion very very slow in the medium and the single point peak stays large during the diffusion for few steps.
-
-* Assumption in code: x,y coords start from lower left. particle variable u also same, i.e. rows correspond with x and
-columns with y, first row is x=0 and first column is y=0. Therefore for ploting u, need to do
-plt.imshow(u.T, origin='lower')
-
-* cells are points. So molecules are produced at a single location. They also do not collide, ...

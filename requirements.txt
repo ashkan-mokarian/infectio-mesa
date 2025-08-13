@@ -1,6 +1,6 @@
 matplotlib
 scipy
-mesa
+mesa<3
 plotly
 python-dotenv
 scikit-learn
