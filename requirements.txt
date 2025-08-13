@@ -1,5 +1,7 @@
-matplotlib
+contourpy==1.0.5
+matplotlib==3.7.2
 scipy
+numpy==1.25.2
 mesa<3
 plotly
 python-dotenv
