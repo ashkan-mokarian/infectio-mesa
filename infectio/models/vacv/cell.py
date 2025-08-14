@@ -65,9 +65,15 @@ class Cell(mesa.Agent):
         """Walk in opposite particle gradient direction of para molecule plus
         RW."""
         dx, dy = self.random.random() - 0.5, self.random.random() - 0.5
-        rw = np.array([dx, dy])
-        rw /= np.linalg.norm(rw)
-        new_pos = self.pos + rw * self.opt.randomwalk_speed
+        rw_direction = np.array([dx, dy])
+        norm = np.linalg.norm(rw_direction)
+        if norm:
+            rw_direction /= norm
+
+        random_distance = self.random.random() * self.opt.rw_speed_in_pixels_per_step
+        randomwalk_vector = rw_direction * random_distance
+        new_pos = self.pos + randomwalk_vector
+
         if self.state is State.I:
             grad_dir = self.particle_gradient_direction()
             norm = np.linalg.norm(grad_dir)

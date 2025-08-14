@@ -30,6 +30,12 @@ def run(opt):
     with open(os.path.join(save_path, "params.json"), "w") as f:
         json.dump(vars(opt), f, indent=4)
 
+    # Create opt parameters in simulation standards. i.e. change times to sim
+    # steps, meters into pixels, etc.
+    opt.rw_speed_in_pixels_per_step = (
+        opt.randomwalk_speed * (1 / opt.pixel_length) * opt.time_per_step * (1 / 60)
+    )
+
     save_data = []
     save_metric_data = []
 
@@ -164,7 +170,11 @@ def get_opts():
     p.add("--disable_diffusion", action="store_true")
     p.add("--alpha", type=float)
     p.add("--diff_steps", type=int)
-    p.add("--randomwalk_speed", type=float)
+    p.add(
+        "--randomwalk_speed",
+        type=float,
+        help="maximum speed of the brownian motion of cells. value represents maximum value a cell can travel in um/min.",
+    )
     p.add("--gradient_speed", type=float)
     p.add("--gradient_direction_noise_max", type=float)
     p.add("--para_produce_max", type=float)
