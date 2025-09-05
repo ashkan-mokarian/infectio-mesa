@@ -35,6 +35,13 @@ def run(opt):
     opt.rw_speed_in_pixels_per_step = (
         opt.randomwalk_speed * (1 / opt.pixel_length) * opt.time_per_step * (1 / 60)
     )
+    opt.gradient_speed_in_pixels_per_step = (
+        opt.gradient_speed * (1 / opt.pixel_length) * opt.time_per_step * (1 / 60)
+    )
+    opt.c2c_radius_search_in_pixels = opt.c2c_radius_search / opt.pixel_length
+    opt.c2c_sigmoid_t0_in_steps = opt.c2c_sigmoid_t0 * (3600 / opt.time_per_step)
+    opt.c2c_sigmoid_tmid_in_steps = opt.c2c_sigmoid_tmid * (3600 / opt.time_per_step)
+    opt.first_cell_lag_in_steps = opt.first_cell_lag * (3600 / opt.time_per_step)
 
     save_data = []
     save_metric_data = []
@@ -136,7 +143,7 @@ def get_opts():
     p.add(
         "--savesnapshots",
         action="store_true",
-        help="whether to save graphs at every step or not.",
+        help="Whether to save gui images at every step or not (each image is around 0.25MB)",
     )
     p.add("--n_sim_steps", type=int)
     p.add(
@@ -175,7 +182,7 @@ def get_opts():
         type=float,
         help="maximum speed of the brownian motion of cells. value represents maximum value a cell can travel in um/min.",
     )
-    p.add("--gradient_speed", type=float)
+    p.add("--gradient_speed", type=float, help="speed of chemotaxis in um/min.")
     p.add("--gradient_direction_noise_max", type=float)
     p.add("--para_produce_max", type=float)
     p.add("--para_produce_t1", type=float)
@@ -184,14 +191,18 @@ def get_opts():
     p.add(
         "--c2c_sigmoid_t0",
         type=float,
-        help="time where c2c inf chance stays 0 after being infected.",
+        help="time where c2c inf chance stays 0 after being infected in hours.",
     )
     p.add(
         "--c2c_sigmoid_tmid",
         type=float,
-        help="time where c2c infection chance gets 0.5.",
+        help="time where c2c infection chance gets 0.5 in hours.",
     )
-    p.add("--c2c_radius_search", type=float)
+    p.add(
+        "--c2c_radius_search",
+        type=float,
+        help="radius in um for searching infected cell neighbors for cell-to-cell infection.",
+    )
     p.add(
         "--reference_file",
         type=str,
@@ -202,7 +213,11 @@ def get_opts():
         type=int,
         help="0: no reference metrics added to plots. 1: only add mean and std. 2: only add individual experimental metrics. 3: add all.",
     )
-    p.add("--first_cell_lag", type=int)
+    p.add(
+        "--first_cell_lag",
+        type=int,
+        help="time in hours where the initial infected cell remains inactive, and doesn't infect cells. It had to be added to fit the experimental data, otherwise we couldn't explain the numbers.",
+    )
 
     options = p.parse_args()
     print(p.format_values())

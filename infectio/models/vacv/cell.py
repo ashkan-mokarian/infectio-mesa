@@ -35,7 +35,7 @@ def cell2cell_infection_chance_add_sigmoids(
     )
     if first_inf_cell_t_inf > 0:
         chances += sigmoid_infectivity_chance(
-            first_inf_cell_t_inf, t0 - lag_time, k, tmid - lag_time
+            first_inf_cell_t_inf, t0 + lag_time, k, tmid + lag_time
         )
     return chances
 
@@ -82,7 +82,7 @@ class Cell(mesa.Agent):
                 grad_dir = direction_noise(
                     grad_dir, self.opt.gradient_direction_noise_max
                 )
-                new_pos -= grad_dir * self.opt.gradient_speed
+                new_pos -= grad_dir * self.opt.gradient_speed_in_pixels_per_step
         self.model.space.move_agent(self, new_pos)
 
     def infect_cell(self):
@@ -98,7 +98,7 @@ class Cell(mesa.Agent):
         infected_neighbors = []
         first_inf_cell_t_inf = 0
         for c in self.model.space.get_neighbors(
-            self.pos, radius=self.opt.c2c_radius_search, include_center=False
+            self.pos, radius=self.opt.c2c_radius_search_in_pixels, include_center=False
         ):
             if not c.time_infected:
                 continue
@@ -121,10 +121,10 @@ class Cell(mesa.Agent):
         infection_prob = cell2cell_infection_chance_add_sigmoids(
             infected_neighbors,
             first_inf_cell_t_inf,
-            self.model.opt.first_cell_lag,
-            self.opt.c2c_sigmoid_t0,
+            self.model.opt.first_cell_lag_in_steps,
+            self.opt.c2c_sigmoid_t0_in_steps,
             self.opt.c2c_sigmoid_k,
-            self.opt.c2c_sigmoid_tmid,
+            self.opt.c2c_sigmoid_tmid_in_steps,
         )
 
         if infection_prob > self.random.random():
