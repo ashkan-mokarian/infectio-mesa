@@ -35,9 +35,24 @@ def run(opt):
     opt.rw_speed_in_pixels_per_step = (
         opt.randomwalk_speed * (1 / opt.pixel_length) * opt.time_per_step * (1 / 60)
     )
-    opt.gradient_speed_in_pixels_per_step = (
-        opt.gradient_speed * (1 / opt.pixel_length) * opt.time_per_step * (1 / 60)
-    )
+
+    # converting SI metrics to simulation units, i.e. um/min to pixels/step
+    if opt.enable_vgf and opt.vgf_gradient_speed is not None:
+        opt.vgf_gradient_speed_in_pixels_per_step = (
+            opt.vgf_gradient_speed
+            * (1 / opt.pixel_length)
+            * opt.time_per_step
+            * (1 / 60)
+        )
+
+    if opt.enable_f11 and opt.f11_gradient_speed is not None:
+        opt.f11_gradient_speed_in_pixels_per_step = (
+            opt.f11_gradient_speed
+            * (1 / opt.pixel_length)
+            * opt.time_per_step
+            * (1 / 60)
+        )
+
     opt.c2c_radius_search_in_pixels = opt.c2c_radius_search / opt.pixel_length
     opt.c2c_sigmoid_t0_in_steps = opt.c2c_sigmoid_t0 * (3600 / opt.time_per_step)
     opt.c2c_sigmoid_tmid_in_steps = opt.c2c_sigmoid_tmid * (3600 / opt.time_per_step)
@@ -174,19 +189,12 @@ def get_opts():
         type=float,
         help="Multiplicative factor for perturbation (between 0 and 1 is recommended, but anything works.)",
     )
-    p.add("--disable_diffusion", action="store_true")
-    p.add("--alpha", type=float)
-    p.add("--diff_steps", type=int)
+
     p.add(
         "--randomwalk_speed",
         type=float,
         help="maximum speed of the brownian motion of cells. value represents maximum value a cell can travel in um/min.",
     )
-    p.add("--gradient_speed", type=float, help="speed of chemotaxis in um/min.")
-    p.add("--gradient_direction_noise_max", type=float)
-    p.add("--para_produce_max", type=float)
-    p.add("--para_produce_t1", type=float)
-    p.add("--para_produce_t2", type=float)
     p.add("--c2c_sigmoid_k", type=float)
     p.add(
         "--c2c_sigmoid_t0",
@@ -218,6 +226,26 @@ def get_opts():
         type=int,
         help="time in hours where the initial infected cell remains inactive, and doesn't infect cells. It had to be added to fit the experimental data, otherwise we couldn't explain the numbers.",
     )
+
+    ## Parameters for VGF
+    p.add("--enable_vgf", action="store_true", help="Enable VGF diffusion pathway")
+    p.add("--vgf_alpha", type=float, help="Diffusion constant for VGF")
+    p.add("--vgf_diff_steps", type=int)
+    p.add("--vgf_gradient_speed", type=float)
+    p.add("--vgf_produce_max", type=float)
+    p.add("--vgf_produce_t1", type=float)
+    p.add("--vgf_produce_t2", type=float)
+
+    ## Parameters for F11
+    p.add("--enable_f11", action="store_true", help="Enable F11 diffusion pathway")
+    p.add("--f11_alpha", type=float, help="Diffusion constant for F11")
+    p.add("--f11_diff_steps", type=int)
+    p.add("--f11_gradient_speed", type=float)
+    p.add("--f11_produce_max", type=float)
+    p.add("--f11_produce_t1", type=float)
+    p.add("--f11_produce_t2", type=float)
+
+    p.add("--gradient_direction_noise_max", type=float)
 
     options = p.parse_args()
     print(p.format_values())
