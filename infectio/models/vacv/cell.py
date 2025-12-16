@@ -54,12 +54,30 @@ class Cell(mesa.Agent):
         self.time_infected = None
         self.opt = model.opt
 
-    def particle_gradient_direction(self):
-        """Returns gradient direction of particle"""
-        if self.model.particle is None:
-            return np.array([0, 0])
-        grad = self.model.particle.grad(self.pos)
-        return grad
+    def calculate_chemotaxis_displacement(self):
+        """
+        Calculates the  total displacement vector due to chemotaxis.
+        Sums the displacement contribution from each active particle.
+        """
+        if not self.model.particles:
+            return np.array([0.0, 0.0])
+
+        total_displacement = np.array([0.0, 0.0])
+
+        for name, particle in self.model.particles.items():
+            grad = particle.grad(self.pos)
+
+            norm = np.linalg.norm(grad)
+            if norm:
+                grad_dir = grad / norm
+
+                speed_attr = f"{name}_gradient_speed_in_pixels_per_step"
+                if hasattr(self.opt, speed_attr):
+                    speed = getattr(self.opt, speed_attr)
+
+                    total_displacement += grad_dir * speed
+
+        return total_displacement
 
     def move(self):
         """Walk in opposite particle gradient direction of para molecule plus
@@ -74,15 +92,16 @@ class Cell(mesa.Agent):
         randomwalk_vector = rw_direction * random_distance
         new_pos = self.pos + randomwalk_vector
 
+        # --- Chemotaxis Component ---
         if self.state is State.I:
-            grad_dir = self.particle_gradient_direction()
-            norm = np.linalg.norm(grad_dir)
-            if norm:
-                grad_dir /= norm
-                grad_dir = direction_noise(
-                    grad_dir, self.opt.gradient_direction_noise_max
+            chemotaxis_displacement = self.calculate_chemotaxis_displacement()
+            if np.linalg.norm(chemotaxis_displacement) > 0:
+                chemotaxis_displacement = direction_noise(
+                    chemotaxis_displacement, self.opt.gradient_direction_noise_max
                 )
-                new_pos -= grad_dir * self.opt.gradient_speed_in_pixels_per_step
+
+            new_pos -= chemotaxis_displacement
+
         self.model.space.move_agent(self, new_pos)
 
     def infect_cell(self):
@@ -131,16 +150,29 @@ class Cell(mesa.Agent):
             self.infect_cell()
 
     def add_para_molecule_during_infection(self):
-        if self.model.particle is None:
+        if self.model.particles is None:
             return
+
         x, y = self.pos
-        # Two-slope production for infected cells
-        self.model.particle.u[int(x), int(y)] += two_slope_function(
-            self.time_infected,
-            self.opt.para_produce_max,
-            self.opt.para_produce_t1,
-            self.opt.para_produce_t2,
-        )
+        ix, iy = int(x), int(y)
+
+        # Produce VGF if active
+        if "vgf" in self.model.particles:
+            self.model.particles["vgf"].u[ix, iy] += two_slope_function(
+                self.time_infected,
+                self.opt.vgf_produce_max,
+                self.opt.vgf_produce_t1,
+                self.opt.vgf_produce_t2,
+            )
+
+        # Produce F11 if active
+        if "f11" in self.model.particles:
+            self.model.particles["f11"].u[ix, iy] += two_slope_function(
+                self.time_infected,
+                self.opt.f11_produce_max,
+                self.opt.f11_produce_t1,
+                self.opt.f11_produce_t2,
+            )
 
     def step(self):
         """
