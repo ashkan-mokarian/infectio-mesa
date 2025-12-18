@@ -167,10 +167,20 @@ def get_opts():
         help="Path where results should be saved (relative to project root).",
     )
     p.add("--save_name", type=str, help="Project save name. current date if not given")
-    p.add("--run_gui", action="store_true", help="show plots.")
+    p.add(
+        "--run_gui",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="show plots.",
+    )
     p.add(
         "--savesnapshots",
-        action="store_true",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
         help="Whether to save gui images at every step or not (each image is around 0.25MB)",
     )
     p.add("--n_sim_steps", type=int)
@@ -292,7 +302,6 @@ def get_opts():
         options.save_root = os.path.abspath(
             os.path.join(PROJECT_PATH, options.save_root)
         )
-
     options.reference_file = (
         os.path.abspath(os.path.join(PROJECT_PATH, options.reference_file))
         if options.reference_file
