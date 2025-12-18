@@ -1,3 +1,4 @@
+import argparse
 import os
 import datetime
 import time
@@ -16,6 +17,18 @@ from infectio.utils import get_save_path
 
 from model import Model
 from cell import State
+
+
+# We need this helper function because configargparse doesn't support boolean arguments directly
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
 def run(opt):
@@ -228,7 +241,14 @@ def get_opts():
     )
 
     ## Parameters for VGF
-    p.add("--enable_vgf", action="store_true", help="Enable VGF diffusion pathway")
+    p.add(
+        "--enable_vgf",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Enable VGF diffusion pathway",
+    )
     p.add("--vgf_alpha", type=float, help="Diffusion constant for VGF")
     p.add("--vgf_diff_steps", type=int)
     p.add("--vgf_gradient_speed", type=float)
@@ -237,7 +257,14 @@ def get_opts():
     p.add("--vgf_produce_t2", type=float)
 
     ## Parameters for F11
-    p.add("--enable_f11", action="store_true", help="Enable F11 diffusion pathway")
+    p.add(
+        "--enable_f11",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Enable F11 diffusion pathway",
+    )
     p.add("--f11_alpha", type=float, help="Diffusion constant for F11")
     p.add("--f11_diff_steps", type=int)
     p.add("--f11_gradient_speed", type=float)
