@@ -213,10 +213,17 @@ class Matplot:
         self.ax_lin_count.legend(loc="center left")
 
     def plot_particle(self):
-        if self.model.particle is None:
+        if not self.model.particles:
             return
+
+        first_particle = next(iter(self.model.particles.values()))
+        total_concentration = np.zeros_like(first_particle.u)
+
+        for p in self.model.particles.values():
+            total_concentration += p.u
+
         self.ax_dif.cla()  # This makes the program run much faster
-        data = self.model.particle.u.T
+        data = total_concentration.T
 
         vmin = np.percentile(data, 5)
         # vmax = np.percentile(data, 95)
@@ -226,7 +233,7 @@ class Matplot:
         if vmin == 0:
             vmin = 1e-10
         diff_plot = self.ax_dif.imshow(
-            self.model.particle.u.T,
+            data,
             norm=mcolors.LogNorm(vmin=vmin, vmax=vmax),
             origin="lower",
             cmap="turbo",
