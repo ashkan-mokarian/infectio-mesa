@@ -17,7 +17,6 @@ class Model(mesa.Model):
     def __init__(self, opt):
         super().__init__()
         self.opt = opt
-        # self.num_agents = opt.num_cells
         self.width = opt.width
         self.height = opt.height
         width = self.width
@@ -42,17 +41,28 @@ class Model(mesa.Model):
         self.space = mesa.space.ContinuousSpace(
             x_max=width, y_max=height, torus=True
         )  # TODO: remove torus, also need to change cell.move()
-        self.particle = None
-        if not opt.disable_diffusion:
-            # VGF particles in space, used for molecular diffusion
-            # \gamma = alpha * delta_t / delta_x ** 2 where alpha is the diffusion constant
-            diffusion_delta_t = opt.time_per_step / opt.diff_steps
-            GAMMA = opt.alpha * diffusion_delta_t / (opt.pixel_length**2)
-            self.particle = Homogenous2dDiffusion(
+
+        self.particles = {}
+
+        if opt.enable_vgf:
+            # \gamma = alpha * delta_t / delta_x ** 2
+            diffusion_delta_t = opt.time_per_step / opt.vgf_diff_steps
+            GAMMA = opt.vgf_alpha * diffusion_delta_t / (opt.pixel_length**2)
+            self.particles["vgf"] = Homogenous2dDiffusion(
                 GAMMA,
                 width,
                 height,
-                opt.diff_steps,
+                opt.vgf_diff_steps,
+            )
+
+        if opt.enable_f11:
+            diffusion_delta_t = opt.time_per_step / opt.f11_diff_steps
+            GAMMA = opt.f11_alpha * diffusion_delta_t / (opt.pixel_length**2)
+            self.particles["f11"] = Homogenous2dDiffusion(
+                GAMMA,
+                width,
+                height,
+                opt.f11_diff_steps,
             )
 
         state_lists = StateList(self, State)
@@ -113,8 +123,9 @@ class Model(mesa.Model):
         """
         A model step. Used for collecting data and advancing the schedule
         """
-        if self.particle:
-            self.particle.step()
+        # Step all active particles
+        for p in self.particles.values():
+            p.step()
         self.schedule.step()
         self.reporters["state_lists"].update()
         self.reporters["xypos"].update()
